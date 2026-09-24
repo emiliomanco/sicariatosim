@@ -694,7 +694,7 @@ kbd{background:#1a2438;border:1px solid var(--line2);border-bottom-width:3px;bor
   <div class="mbox card" style="width:auto">
     <div class="mhead"><div class="ttl" style="color:#ff8c3a">☠ MAPA DE SABOTAJE</div><span class="small" id="sabCdTxt"></span><button class="btn sm" id="sabClose">CERRAR</button></div>
     <div class="mbody"><canvas id="sabCv" width="940" height="640"></canvas>
-      <div class="legend"><span>💡 Luces</span><span>💨 Oxígeno</span><span>☢ Reactor</span><span>📡 Comunicaciones</span><span>☢ Emergencia crítica</span><span>🚪 Cerrar puertas</span></div>
+      <div class="legend" id="sabLegend"><span>💡 Luces</span><span>💨 Oxígeno</span><span>☢ Reactor</span><span>📡 Comunicaciones</span><span>☢ Emergencia crítica</span><span>🚪 Cerrar puertas</span></div>
     </div>
   </div>
 </div>
@@ -4674,7 +4674,7 @@ function autoFloorMat(M, name, col, indoor){
   if(/cancha|pista/.test(n)) return 'court';
   if(/gimnasio/.test(n)) return 'parquet';
   const c=hexRGB(col||'#888888'), mx=Math.max(c[0],c[1],c[2]), mn=Math.min(c[0],c[1],c[2]), sat=mx?(mx-mn)/mx:0;
-  if(c[1]>c[0] && c[1]>c[2] && sat>0.2) return 'grass';
+  if(c[1]>c[0] && c[1]>c[2] && sat>0.2 && !(M.space && indoor)) return 'grass';
   if(M.space) return 'metalfloor';
   if(c[0]>c[1] && c[1]>=c[2] && sat>0.22) return indoor ? 'wood' : 'stone';
   if(!indoor) return mx<130 ? 'asphalt' : 'stone';
@@ -4732,10 +4732,10 @@ function mapTorremar(){
   place(M,'tree',-22,30); place(M,'tree',22,30); place(M,'tree',-24,18); place(M,'tree',24,18);
 
   /* --- RECEPCION --- */
-  M.room('Recepcion',-7,14,14,10,{floor:F,wall:W,o:{s:[[-3,6]],n:[[-2,4]]}});
+  M.room('Recepción',-7,14,14,10,{floor:F,wall:W,o:{s:[[-3,6]],n:[[-2,4]]}});
   place(M,'counter',0,16.5,0,true,2.8,1.0);
   place(M,'sofa',-5,21,Math.PI/2,true,1.0,2.2); place(M,'plant',5.6,21.5);
-  M.task('t_rec_log','Registrar visitantes','Recepcion',0,17.6,'computer','short');
+  M.task('t_rec_log','Registrar visitantes','Recepción',0,17.6,'computer','short');
 
   /* --- ADMINISTRACION + SEGURIDAD --- */
   M.room('Administracion',8,14,17,12,{floor:F,wall:W,o:{w:[[16,4]]}});
@@ -4743,9 +4743,9 @@ function mapTorremar(){
   place(M,'desk',20,18,0,true,1.4,.8); place(M,'chair',20,19.3);
   place(M,'bookshelf',22,15.3,Math.PI,true,2.3,.6);
   M.task('t_adm_files','Ordenar expedientes','Administracion',12,18.9,'sort','short');
-  M.room('Sala de Camaras',8,26.5,9,8,{floor:'#8e949c',wall:'#9aa3ad',o:{n:[[10,4]]}});
+  M.room('Sala de Cámaras',8,26.5,9,8,{floor:'#8e949c',wall:'#9aa3ad',o:{n:[[10,4]]}});
   place(M,'monitor',10.5,27.6,0,true,1.0,.5); place(M,'monitor',13.5,27.6,0,true,1.0,.5);
-  M.task('t_cam_check','Revisar grabaciones','Sala de Camaras',12,29,'sequence','common');
+  M.task('t_cam_check','Revisar grabaciones','Sala de Cámaras',12,29,'sequence','common');
 
   /* --- SALA DE PROFESORES --- */
   M.room('Sala de Profesores',27,14,14,11,{floor:'#a98d68',wall:W,o:{w:[[16,4]]}});
@@ -4755,11 +4755,11 @@ function mapTorremar(){
   M.task('t_prof_coffee','Preparar cafetera','Sala de Profesores',39,17.6,'switches','short');
 
   /* --- ENFERMERIA --- */
-  M.room('Enfermeria',-25,14,15,11,{floor:'#dfe7ee',wall:'#f2f6fa',o:{e:[[16,4]]}});
+  M.room('Enfermería',-25,14,15,11,{floor:'#dfe7ee',wall:'#f2f6fa',o:{e:[[16,4]]}});
   place(M,'stretcher',-21,19,0,true,1.0,2.2); place(M,'stretcher',-16,19,0,true,1.0,2.2);
   place(M,'sink',-23.5,15.4,Math.PI,true,1.5,.7);
-  M.task('t_enf_scan','Examen medico','Enfermeria',-12.5,19,'medscan','common');
-  M.task('t_enf_meds','Ordenar medicinas','Enfermeria',-23,22,'sort','short');
+  M.task('t_enf_scan','Examen medico','Enfermería',-12.5,19,'medscan','common');
+  M.task('t_enf_meds','Ordenar medicinas','Enfermería',-23,22,'sort','short');
 
   /* --- BANOS --- */
   M.room('Banos',-41,14,14,9,{floor:'#aeb6bf',wall:'#cdd6de',o:{e:[[16,4]]}});
@@ -4780,7 +4780,7 @@ function mapTorremar(){
   M.room('Aula A1',-36,0,11,10,{floor:'#b58a5c',wall:W,o:{s:[[-31,6]]}});
   M.room('Aula A2',-24,0,11,10,{floor:'#b58a5c',wall:W,o:{s:[[-19,6]]}});
   M.room('Laboratorio',-12,0,10,10,{floor:'#9fb2bd',wall:'#e6eef4',o:{s:[[-8,6]]}});
-  M.room('Informatica',2,0,11,10,{floor:'#8f97a3',wall:'#dde4ea',o:{s:[[3,6]]}});
+  M.room('Informática',2,0,11,10,{floor:'#8f97a3',wall:'#dde4ea',o:{s:[[3,6]]}});
   M.room('Biblioteca',15,0,14,10,{floor:'#a2763f',wall:W,o:{s:[[16,6]]}});
   M.room('Bodega',30,0,10,10,{floor:'#8d8577',wall:'#b3ab9b',o:{s:[[29,5]]}});
   for(const [bx,tag] of [[-36,'A1'],[-24,'A2']]){
@@ -4792,11 +4792,11 @@ function mapTorremar(){
   place(M,'table',-7,3,0,true,2.0,1.1); place(M,'table',-7,7,0,true,2.0,1.1);
   place(M,'wirepanel',-11.6,5,Math.PI/2,false);
   M.task('t_lab_wires','Conectar cables del laboratorio','Laboratorio',-10.9,5,'wires','short');
-  M.task('t_lab_gas','Reparar valvula de gas','Laboratorio',-4,1.2,'machine','long',{chain:'gas',step:0,steps:3});
+  M.task('t_lab_gas','Reparar válvula de gas','Laboratorio',-4,1.2,'machine','long',{chain:'gas',step:0,steps:3});
   M.vent('v_lab','Laboratorio',-4.5,8.5,['v_banos','v_comedor']);
   for(let i=0;i<6;i++){ place(M,'computer',4+ (i%3)*3.4, 2.2+Math.floor(i/3)*4.2,0,true,1.1,.7); }
-  M.task('t_info_upload','Transferir informacion','Informatica',4,2.2,'uploaddata','long',{chain:'datos',step:1,steps:2});
-  M.task('t_info_code','Introducir codigo de acceso','Informatica',10.8,6.4,'keypad','short');
+  M.task('t_info_upload','Transferir informacion','Informática',4,2.2,'uploaddata','long',{chain:'datos',step:1,steps:2});
+  M.task('t_info_code','Introducir código de acceso','Informática',10.8,6.4,'keypad','short');
   for(let i=0;i<4;i++) place(M,'bookshelf',16.5+i*3.2,1.0,0,true,2.3,.6);
   place(M,'table',22,6.5,0,true,2.0,1.1);
   M.task('t_bib_sort','Clasificar libros','Biblioteca',17,3.4,'sort','short');
@@ -4863,7 +4863,7 @@ function mapTorremar(){
   M.door('d_cafe','comedor',-32,-17,-26,-17);
   M.door('d_gim','gimnasio',4,-17,11,-17);
   M.door('d_lab','laboratorio',-8,10,-2,10);
-  M.door('d_info','informatica',3,10,9,10);
+  M.door('d_info','informática',3,10,9,10);
   M.door('d_adm','administracion',8,16,8,20);
   M.door('d_bib','biblioteca',16,10,22,10);
 
@@ -4876,8 +4876,8 @@ function mapTorremar(){
 
   /* --- emergencia + reparaciones criticas --- */
   M.emergency={x:0,z:12};  place(M,'embutton',0,12,0,true,1.1,1.1);
-  M.repairPoint('r1','Valvula Laboratorio',-6.5,8.6);
-  M.repairPoint('r2','Valvula Comedor',-19,-30.5);
+  M.repairPoint('r1','Válvula Laboratorio',-6.5,8.6);
+  M.repairPoint('r2','Válvula Comedor',-19,-30.5);
   M.spawn={x:0,z:20};
   M.lightsRoom='Bodega'; M.lightsPos={x:32,z:8.6};
   decoTorremar(M);
@@ -4905,14 +4905,14 @@ function mapPlazaLagos(){
 
   /* agua + malecon (borde este) */
   M.room('Lago',44,-60,40,120,{floor:'#2f6f9c',noCeil:true,open:'nswe'});
-  M.room('Malecon',28,-34,16,68,{floor:'#c6b294',noCeil:true,open:'nswe'});
+  M.room('Malecón',28,-34,16,68,{floor:'#c6b294',noCeil:true,open:'nswe'});
   M.addWall(44,-34,44,34,0.9,'#b9a88c');
   for(let i=0;i<8;i++) place(M,'palm',41,-30+i*8.5);
   for(let i=0;i<5;i++) place(M,'bench',38,-24+i*12,-Math.PI/2,false);
   place(M,'boat',47,10,0.3,false); place(M,'boat',48,-6,-0.2,false);
-  M.task('t_mal_lights','Encender luces del malecon','Malecon',33,-20,'switches','short');
-  M.task('t_mal_clean','Recoger residuos del malecon','Malecon',33,22,'clean','short');
-  M.vent('v_mal','Malecon',30,30,['v_parq','v_ofi']);
+  M.task('t_mal_lights','Encender luces del malecon','Malecón',33,-20,'switches','short');
+  M.task('t_mal_clean','Recoger residuos del malecon','Malecón',33,22,'clean','short');
+  M.vent('v_mal','Malecón',30,30,['v_parq','v_ofi']);
 
   /* faro + mirador (norte) */
   M.room('Mirador',-12,-40,26,18,{floor:'#bfb49f',noCeil:true,open:'s'});
@@ -4931,7 +4931,7 @@ function mapPlazaLagos(){
   M.room('Local 2 - Electronica',-62,-8,16,14,{floor:'#8f97a3',wall:W,o:{e:[[-4,5]]}});
   for(let i=0;i<4;i++) place(M,'computer',-58+i*3.2,-5,0,true,1.1,.7);
   M.task('t_local2','Reparar una computadora','Local 2 - Electronica',-58,-5,'computer','short');
-  M.task('t_local2b','Transferir catalogo','Local 2 - Electronica',-49,2,'uploaddata','long',{chain:'cat',step:0,steps:2});
+  M.task('t_local2b','Transferir catálogo','Local 2 - Electronica',-49,2,'uploaddata','long',{chain:'cat',step:0,steps:2});
   M.room('Local 3 - Libreria',-62,8,16,14,{floor:'#a2763f',wall:W,o:{e:[[12,5]]}});
   for(let i=0;i<3;i++) place(M,'bookshelf',-58+i*3.6,10,0,true,2.3,.6);
   M.task('t_local3','Clasificar libros','Local 3 - Libreria',-56,16,'sort','short');
@@ -4962,7 +4962,7 @@ function mapPlazaLagos(){
   for(let r=0;r<2;r++) for(let c=0;c<4;c++){ place(M,'desk',-42+c*5.5,-40+r*6,0,true,1.4,.8); place(M,'chair',-42+c*5.5,-38.8+r*6,Math.PI); }
   M.task('t_ofi_code','Abrir la caja fuerte','Oficinas',-24,-36,'keypad','short');
   M.task('t_ofi_wires','Reparar el cableado','Oficinas',-44,-42,'wires','short');
-  M.task('t_ofi_cat','Subir catalogo al servidor','Oficinas',-33,-42.6,'uploaddata','long',{chain:'cat',step:1,steps:2});
+  M.task('t_ofi_cat','Subir catálogo al servidor','Oficinas',-33,-42.6,'uploaddata','long',{chain:'cat',step:1,steps:2});
   M.vent('v_ofi','Oficinas',-44,-28,['v_mirador','v_mal']);
 
   /* parqueadero (sur-oeste) */
@@ -4972,12 +4972,12 @@ function mapPlazaLagos(){
   M.vent('v_parq','Parqueadero',-48,46,['v_mal','v_rest']);
 
   /* cuarto tecnico */
-  M.room('Cuarto Tecnico',20,-44,16,14,{floor:'#6f7783',wall:'#9aa3ad',o:{s:[[24,5]]}});
+  M.room('Cuarto Técnico',20,-44,16,14,{floor:'#6f7783',wall:'#9aa3ad',o:{s:[[24,5]]}});
   place(M,'reactor',28,-38,0,true,2.6,2.6);
   place(M,'wirepanel',21,-40,Math.PI/2,false);
-  M.task('t_tec_wires','Conectar cables del tablero','Cuarto Tecnico',21.8,-40,'wires','short');
-  M.task('t_tec_gen','Estabilizar el generador','Cuarto Tecnico',24,-42,'power','long',{chain:'gen',step:1,steps:2});
-  M.lightsRoom='Cuarto Tecnico'; M.lightsPos={x:32,z:-42};
+  M.task('t_tec_wires','Conectar cables del tablero','Cuarto Técnico',21.8,-40,'wires','short');
+  M.task('t_tec_gen','Estabilizar el generador','Cuarto Técnico',24,-42,'power','long',{chain:'gen',step:1,steps:2});
+  M.lightsRoom='Cuarto Técnico'; M.lightsPos={x:32,z:-42};
 
   /* conexiones peatonales */
   M.corridor('Paseo Norte',-20,-24,44,5,{floor:'#c6b99f',noCeil:true,open:'nswe'});
@@ -4986,15 +4986,15 @@ function mapPlazaLagos(){
   M.door('d_rest','restaurante',10,22,16,22);
   M.door('d_ofi','oficinas',-40,-26,-34,-26);
   M.door('d_tec','tecnico',24,-30,29,-30);
-  M.door('d_cafe2','cafe',-30,22,-24,22);
+  M.door('d_cafe2','café',-30,22,-24,22);
 
   M.cam('c1','Plaza Central',-14,3.0,-14,Math.PI*0.25);
-  M.cam('c2','Malecon',30,3.0,-30,Math.PI*0.9);
+  M.cam('c2','Malecón',30,3.0,-30,Math.PI*0.9);
   M.cam('c3','Promenade',-30,3.0,18,-Math.PI*0.9);
   M.cam('c4','Exedra',-16,3.0,34,-Math.PI*0.25);
 
-  M.repairPoint('r1','Valvula Norte',22,-30.5);
-  M.repairPoint('r2','Valvula Sur',-22,44);
+  M.repairPoint('r1','Válvula Norte',22,-30.5);
+  M.repairPoint('r2','Válvula Sur',-22,44);
   M.spawn={x:0,z:6};
   decoPlaza(M);
   return M.finalize();
@@ -5002,112 +5002,286 @@ function mapPlazaLagos(){
 
 /* ---------------------------------------------------------------
    3) THE SKELD
+   La nave sale del creador de mapas: son los datos del archivo
+   The_Skeld.stmap incrustados tal cual (formato sicariato-map), asi
+   que se arma con el mismo lector que los mapas importados.
+   Al venir dentro de la pagina, el host y los invitados construyen
+   la misma nave sin enviarse el mapa por la red.
    --------------------------------------------------------------- */
-function mapSkeld(){
-  const M=new GameMap('skeld','THE SKELD'); M.signStyle={bg:'#1c2a3a', color:'#9fe0ff'};
-  M.fogColor=[16,22,34]; M.ambient=0.44;
-  const W='#7b8798', F='#4c5666', W2='#68738a';
-
-  M.room('Cafeteria',-12,-14,24,22,{floor:'#5a6474',wall:W,o:{s:[[-4,8]],w:[[-6,7]],e:[[-6,7]],n:[[-3,6]]}});
-  for(let i=0;i<4;i++){ const a=i/4*TAU; place(M,'table',Math.cos(a)*6,-3+Math.sin(a)*5,a,true,2.0,1.1); }
-  M.emergency={x:0,z:-3}; place(M,'embutton',0,-3,0,true,1.1,1.1);
-  M.task('t_caf_trash','Sacar la basura','Cafeteria',-10,5,'garbagepull','short');
-  M.task('t_caf_coffee','Preparar cafe','Cafeteria',10,-12,'switches','short');
-  M.vent('v_caf','Cafeteria',-10,-12,['v_hall','v_adm']);
-
-  M.corridor('Pasillo Norte',-3,-26,6,12,{floor:F,wall:W2,o:{n:[[-3,6]],s:[[-3,6]]}});
-  M.room('Armeria',-8,-42,17,16,{floor:'#57616f',wall:W,o:{s:[[-3,6]]}});
-  place(M,'monitor',0,-40,0,true,1.0,.5); place(M,'panel',-6,-40,0,false);
-  M.task('t_arm_aim','Calibrar el canon','Armeria',0,-38.6,'asteroids','short');
-  M.task('t_arm_seq','Descargar objetivos','Armeria',7,-34,'uploaddata','long',{chain:'nav',step:0,steps:2});
-  M.vent('v_arm','Armeria',-6,-40,['v_nav','v_caf']);
-
-  M.corridor('Pasillo Este',12,-8,14,6,{floor:F,wall:W2,o:{w:[[-6,7]],e:[[-6,7]],n:[[16,6]]}});
-  M.room('O2',18,-26,14,13,{floor:'#4f5b6b',wall:W,o:{s:[[20,6]]}});
-  place(M,'ventfan',24,-25,0,false); place(M,'panel',20,-25,0,false);
-  M.task('t_o2_clean','Limpiar el filtro de O2','O2',24,-23,'o2filter','short');
-  M.task('t_o2_code','Introducir codigo de O2','O2',19.5,-20,'keypad','short');
-
-  M.room('Navegacion',34,-18,13,14,{floor:'#4f5b6b',wall:W,o:{w:[[-12,6]]}});
-  place(M,'monitor',44,-11,-Math.PI/2,true,.6,1.0); place(M,'computer',38,-16,0,true,1.1,.7);
-  M.task('t_nav_align','Estabilizar el rumbo','Navegacion',40,-12,'steering','short');
-  M.task('t_nav_up','Subir datos de navegacion','Navegacion',38,-15,'uploaddata','long',{chain:'nav',step:1,steps:2});
-  M.vent('v_nav','Navegacion',44,-16,['v_arm','v_shield']);
-
-  M.room('Escudos',30,6,14,13,{floor:'#4f5b6b',wall:W,o:{w:[[10,6]]}});
-  place(M,'panel',32,8,0,false); place(M,'scanner',40,12,0,true,1.8,1.8);
-  M.task('t_shi_prime','Cebar los escudos','Escudos',36,9,'primeshields','short');
-  M.vent('v_shield','Escudos',43,17,['v_nav','v_hall']);
-
-  M.corridor('Pasillo Sur',12,8,18,6,{floor:F,wall:W2,o:{w:[[10,6]],e:[[10,6]],s:[[16,6]]}});
-  M.room('Comunicaciones',14,20,13,12,{floor:'#4f5b6b',wall:W,o:{n:[[16,6]]}});
-  place(M,'computer',20,23,0,true,1.1,.7); place(M,'wirepanel',15,25,Math.PI/2,false);
-  M.task('t_com_wires','Conectar cables de comunicaciones','Comunicaciones',15.8,25,'wires','short');
-  M.task('t_com_seq','Sincronizar la antena','Comunicaciones',20,24.4,'sequence','common');
-
-  M.room('Almacen',-8,8,18,18,{floor:'#586274',wall:W,o:{n:[[-4,8]],w:[[12,6]],e:[[12,6]]}});
-  for(let i=0;i<5;i++) place(M,'crate',-6+i*2.2,11,0,true,1.1,1.1);
-  for(let i=0;i<4;i++) place(M,'barrel',-6+i*2.2,22,0,true,.9,.9);
-  M.task('t_alm_fuel','Cargar combustible','Almacen',0,20,'fuelfill','long',{chain:'fuel',step:0,steps:2});
-  M.task('t_alm_clean','Limpiar el almacen','Almacen',7,13,'clean','short');
-
-  M.room('Admin',16,-4,12,10,{floor:'#4f5b6b',wall:W,o:{w:[[-2,6]]}});
-  place(M,'table',22,-1,0,true,2.0,1.1); place(M,'computer',18,-3,0,true,1.1,.7);
-  M.task('t_adm_swipe','Pasar la tarjeta','Admin',18,-1.8,'swipecard','short');
-  M.vent('v_adm','Admin',26,-2,['v_caf','v_hall']);
-
-  M.corridor('Pasillo Oeste',-26,-8,14,6,{floor:F,wall:W2,o:{e:[[-6,7]],w:[[-6,7]]}});
-  M.room('Electricidad',-36,2,14,13,{floor:'#3f4756',wall:'#5c6676',o:{n:[[-32,6]]}});
-  place(M,'wirepanel',-35,4,Math.PI/2,false); place(M,'panel',-28,4,0,false);
-  M.task('t_ele_wires','Reparar el cableado','Electricidad',-34.2,4,'wires','short');
-  M.task('t_ele_power','Restaurar la energia','Electricidad',-28,5.4,'acceptpower','long',{chain:'fuel',step:1,steps:2});
-  M.lightsRoom='Electricidad'; M.lightsPos={x:-30,z:5.4};
-  M.vent('v_ele','Electricidad',-34,13,['v_med','v_hall']);
-
-  M.room('Enfermeria',-30,-22,14,12,{floor:'#4a5768',wall:'#7f8ea0',o:{s:[[-26,6]]}});
-  place(M,'stretcher',-27,-18,0,true,1.0,2.2); place(M,'scanner',-20,-18,0,true,1.8,1.8);
-  M.task('t_med_scan','Enviar muestra de ADN','Enfermeria',-20,-18,'medscan','common');
-  M.vent('v_med','Enfermeria',-28,-20,['v_ele','v_upper']);
-
-  M.corridor('Pasillo Motores',-44,-8,8,6,{floor:F,wall:W2,o:{e:[[-6,7]],n:[[-42,5]],s:[[-42,5]]}});
-  M.room('Motor Superior',-56,-24,16,16,{floor:'#454f5e',wall:W,o:{s:[[-42,5]]}});
-  place(M,'engine',-48,-16,0,true,2.4,1.4);
-  M.task('t_eng_up','Alinear el motor superior','Motor Superior',-48,-14,'alignengine','short');
-  M.vent('v_upper','Motor Superior',-54,-22,['v_med','v_react']);
-  M.room('Motor Inferior',-56,8,16,16,{floor:'#454f5e',wall:W,o:{n:[[-42,5]]}});
-  place(M,'engine',-48,16,Math.PI,true,2.4,1.4);
-  M.task('t_eng_low','Alinear el motor inferior','Motor Inferior',-48,14,'alignengine','short');
-  M.vent('v_lower','Motor Inferior',-54,22,['v_react','v_ele']);
-
-  M.room('Reactor',-76,-10,18,20,{floor:'#3c4453',wall:'#5c6676',o:{e:[[-6,8]]}});
-  place(M,'reactor',-67,0,0,true,2.6,2.6);
-  M.task('t_rea_seq','Iniciar el reactor','Reactor',-72,-6,'startreactor','common');
-  M.vent('v_react','Reactor',-74,6,['v_upper','v_lower']);
-  M.corridor('Pasillo Reactor',-58,-4,4,8,{floor:F,wall:W2,o:{w:[[-6,8]],e:[[-6,8]]}});
-
-  M.room('Seguridad',-30,-6,12,10,{floor:'#4a5464',wall:W,o:{n:[[-26,5]]}});
-  place(M,'monitor',-25,-4,0,true,1.0,.5); place(M,'monitor',-28,-4,0,true,1.0,.5);
-  M.task('t_seg_check','Revisar las camaras','Seguridad',-26,-2.6,'sequence','common');
-  M.vent('v_hall','Pasillo Este',16,-6,['v_caf','v_adm','v_shield','v_ele']);
-
-  M.door('d_caf1','cafeteria',-4,8,4,8);
-  M.door('d_med','enfermeria',-26,-10,-20,-10);
-  M.door('d_ele','electricidad',-32,2,-26,2);
-  M.door('d_alm','almacen',-4,8,4,8);
-  M.door('d_com','comunicaciones',16,20,22,20);
-  M.door('d_o2','o2',20,-13,26,-13);
-
-  M.cam('c1','Cafeteria',-11,2.6,-13,Math.PI*0.25);
-  M.cam('c2','Almacen',-7,2.6,9,Math.PI*0.25);
-  M.cam('c3','Motor Superior',-55,2.6,-23,Math.PI*0.25);
-  M.cam('c4','Seguridad',-29,2.6,-5,Math.PI*0.25);
-
-  M.repairPoint('r1','Reactor Izquierdo',-74,-8);
-  M.repairPoint('r2','Reactor Derecho',-60,-8);
-  M.spawn={x:0,z:-3};
-  decoSkeld(M);
-  return M.finalize();
-}
+const SKELD_MAP_DATA = {
+ "format":"sicariato-map", "version":1, "name":"The Skeld", "theme":"space", "outdoor":false,
+ "sky":["#000000","#000000"], "ground":null,
+ "rooms":[
+  {"kind":"room","name":"Cafeteria","x":-17.5,"z":-14,"w":35,"d":32,"floor":"#b0b3a2","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-12,18],[-17.5,12.5],[-17.5,-8.5],[-12,-14],[12,-14],[17.5,-9],[17.5,12.5],[12,18]],"pgaps":[[],[],[],[],[],[],[],[]]},
+  {"kind":"room","name":"Upper Engine","x":-70,"z":-4.5,"w":18,"d":19,"floor":"#6f6964","wall":"#8c877b","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-52,14.5],[-70,14.5],[-70,-1],[-66.5,-4.5],[-52,-4.5]],"pgaps":[[],[],[],[],[]]},
+  {"kind":"room","name":"Lower Engine","x":-70,"z":36,"w":18,"d":19,"floor":"#6f6964","wall":"#8c877b","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-70,36],[-70,51.5],[-66,55],[-52,55],[-52,36]],"pgaps":[[],[],[],[],[]]},
+  {"kind":"room","name":"Medbay","x":-36,"z":7.5,"w":23.5,"d":19,"floor":"#819a9d","wall":"#b0cfd2","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-12.5,26.5],[-32.5,26.5],[-36,23],[-36,7.5],[-19,7.5],[-19,13],[-12.5,19.5]],"pgaps":[[],[],[],[],[],[],[]]},
+  {"kind":"room","name":"Reactor","x":-86,"z":8,"w":17.5,"d":32,"floor":"#686588","wall":"#5b5597","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-73.5,8],[-80.5,8],[-86,13],[-86,35],[-80.5,40],[-73.5,40],[-73.5,33],[-68.5,33],[-68.5,15],[-73.5,15]],"pgaps":[[],[],[],[],[],[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":-52,"z":-0.5,"w":34.5,"d":8,"floor":"#85a3ad","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-52,-0.5],[-52,5.5],[-30.5,5.5],[-30.5,7.5],[-24.5,7.5],[-24.5,5.5],[-17.5,5.5],[-17.5,-0.5]],"pgaps":[[],[],[],[],[],[],[],[]]},
+  {"kind":"room","name":"Admin","x":10.5,"z":23,"w":15.5,"d":14,"floor":"#785059","wall":"#768792","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[10.5,23],[26,23],[26,34],[23,37],[10.5,37]],"pgaps":[[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":28.5,"z":9,"w":25,"d":25,"floor":"#85a3ad","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[30.5,9],[30.5,11],[28.5,11],[28.5,17],[39.5,17],[39.5,20],[30.5,20],[30.5,34],[36.5,34],[36.5,26],[45.5,26],[45.5,21],[53.5,21],[53.5,15],[45.5,15],[45.5,11],[36.5,11],[36.5,9]],"pgaps":[[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":17.5,"z":-1,"w":8,"d":6,"floor":"#85a3ab","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[25.5,-1],[17.5,-1],[17.5,5],[25.5,5]],"pgaps":[[],[],[],[]]},
+  {"kind":"room","name":"Weapons","x":25.5,"z":-7,"w":16.5,"d":16,"floor":"#c6c6aa","wall":"#81806c","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[29,9],[42,9],[42,-1],[36,-7],[25.5,-7],[25.5,5.5]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"room","name":"O2","x":15.5,"z":10,"w":13,"d":11,"floor":"#72867b","wall":"#91aca1","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[28.5,10],[28.5,21],[15.5,21],[15.5,16.5],[19.5,12.5],[19.5,10]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"room","name":"Navigation","x":53.5,"z":10,"w":10,"d":16,"floor":"#536978","wall":"#26333a","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[53.5,10],[53.5,26],[58.5,26],[63.5,22],[63.5,14],[58.5,10]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"room","name":"Shields","x":24,"z":34,"w":18,"d":18,"floor":"#c6c6aa","wall":"#81806c","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[42,34],[42,46],[36,52],[24,52],[24,38.5],[28.5,34]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":-3,"z":18,"w":13.5,"d":14,"floor":"#85a3ad","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-3,18],[-3,32],[3,32],[3,29],[10.5,29],[10.5,23],[3,23],[3,18]],"pgaps":[[],[],[],[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":7,"z":39,"w":17,"d":8.5,"floor":"#85a3ad","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[24,39],[24,45],[20,45],[20,47.5],[14,47.5],[14,45],[7,45],[7,39]],"pgaps":[[],[],[],[],[],[],[],[]]},
+  {"kind":"room","name":"Electrical","x":-32,"z":28,"w":19.5,"d":19,"floor":"#5b5d4f","wall":"#91927d","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-12.5,28],[-12.5,31.5],[-16.5,35.5],[-16.5,42.5],[-21,47],[-32,47],[-32,28]],"pgaps":[[],[],[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":-52,"z":43.5,"w":38,"d":11.5,"floor":"#85a3ad","wall":"#558590","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-52,43.5],[-38,43.5],[-38,49],[-32,49],[-32,47],[-26,47],[-26,49],[-14,49],[-14,55],[-44,55],[-44,49.5],[-52,49.5]],"pgaps":[[],[],[],[],[],[],[],[],[],[],[],[]]},
+  {"kind":"room","name":"Storage","x":-14,"z":32,"w":21,"d":29,"floor":"#59666b","wall":"#828689","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[7,32],[-9,32],[-14,37],[-14,56],[-9,61],[7,61]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"room","name":"Communication","x":8,"z":47.5,"w":15,"d":13.5,"floor":"#587882","wall":"#89a197","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[19,61],[12,61],[8,57],[8,47.5],[23,47.5],[23,57]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"room","name":"Security","x":-50.5,"z":11.5,"w":13,"d":22,"floor":"#316258","wall":"#89a197","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-50.5,33.5],[-50.5,16.5],[-45.5,11.5],[-42.5,11.5],[-37.5,16.5],[-37.5,33.5]],"pgaps":[[],[],[],[],[],[]]},
+  {"kind":"hall","name":"","x":-68.5,"z":14.5,"w":18,"d":21.5,"floor":"#6f6964","wall":"#8c877b","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-58,14.5],[-58,21],[-50.5,21],[-50.5,27],[-58,27],[-58,36],[-64,36],[-64,27],[-68.5,27],[-68.5,21],[-64,21],[-64,14.5]],"pgaps":[[],[],[],[],[],[],[],[],[],[],[],[]]}
+ ],
+ "walls":[
+  {"x1":24,"z1":45,"x2":27,"z2":45,"h":1,"color":"#8b3333"},
+  {"x1":38.5,"z1":45,"x2":38.5,"z2":39,"h":1,"color":"#8b3333"},
+  {"x1":36.5,"z1":34,"x2":36.5,"z2":37,"h":1,"color":"#8b3333"},
+  {"x1":36.5,"z1":47,"x2":38.621,"z2":44.879,"h":1,"color":"#8b3333"},
+  {"x1":36.5,"z1":37,"x2":38.621,"z2":39.121,"h":1,"color":"#8b3333"},
+  {"x1":30.5,"z1":34,"x2":30.5,"z2":37,"h":1,"color":"#8b3334"},
+  {"x1":30.5,"z1":37,"x2":27.036,"z2":39,"h":1,"color":"#8b3334"},
+  {"x1":27,"z1":39,"x2":24,"z2":39,"h":1,"color":"#8b3333"},
+  {"x1":27,"z1":45,"x2":30.464,"z2":47,"h":1,"color":"#8b3333"},
+  {"x1":30.5,"z1":47,"x2":30.5,"z2":48,"h":1,"color":"#8b3333"},
+  {"x1":30.5,"z1":48,"x2":24,"z2":48,"h":1,"color":"#8b3333"},
+  {"x1":36.5,"z1":47,"x2":36.5,"z2":51.5,"h":1,"color":"#8b3333"},
+  {"x1":23.9,"z1":23.1,"x2":23.9,"z2":24.1,"h":3.1,"color":"#7b8798"},
+  {"x1":30.5,"z1":7,"x2":28.379,"z2":4.879,"h":1,"color":"#a54644"},
+  {"x1":25.5,"z1":5,"x2":28.5,"z2":5,"h":1,"color":"#a34644"},
+  {"x1":30.5,"z1":9,"x2":30.5,"z2":7,"h":1,"color":"#a34644"},
+  {"x1":25.5,"z1":-1,"x2":28.5,"z2":-1,"h":1,"color":"#a34644"},
+  {"x1":30.5,"z1":-7,"x2":30.5,"z2":-3,"h":1,"color":"#a54644"},
+  {"x1":30.5,"z1":-3,"x2":28.379,"z2":-0.879,"h":1,"color":"#a34644"},
+  {"x1":36.5,"z1":9,"x2":36.5,"z2":7,"h":1,"color":"#a34644"},
+  {"x1":36.5,"z1":7,"x2":37.924,"z2":1.687,"h":1,"color":"#a04441"},
+  {"x1":38,"z1":1.5,"x2":42,"z2":1.5,"h":1,"color":"#a34644"},
+  {"x1":17,"z1":23,"x2":17,"z2":25,"h":2,"color":"#7b8798"},
+  {"x1":20,"z1":23,"x2":20,"z2":25,"h":2,"color":"#7b8798"},
+  {"x1":14,"z1":23,"x2":14,"z2":25,"h":2,"color":"#7b8798"}
+ ],
+ "props":[
+  {"k":"barrel","x":-13,"z":38,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-11.5,"z":36.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-10.5,"z":35,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-9,"z":34,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-10,"z":34,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-8.5,"z":33,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-12.5,"z":37,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-10.5,"z":36,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-1.5,"z":46,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-2.5,"z":43,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":1},
+  {"k":"crates","x":-4,"z":44.5,"r":2.356194490192345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-3.5,"z":46,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-1,"z":43.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-1.5,"z":41.5,"r":18.06415775814132,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-4.5,"z":42,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-2.5,"z":41,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-0.5,"z":44.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"barrel","x":-5.5,"z":43,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crate","x":0.5,"z":42.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crate","x":-5,"z":45.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"toolbox","x":-4.5,"z":46.5,"r":2.356194490192345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"toolbox","x":-5.5,"z":41.5,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"fueltank","x":-68,"z":49,"r":0,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"reactor","x":-84.5,"z":20.200000000000003,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"reactor","x":-84.5,"z":27.799999999999997,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"labbench","x":-16,"z":17,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"labbench","x":-18,"z":15,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"labbench","x":-14,"z":19,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"toolbox","x":-13.5,"z":39,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"skeleton","x":-26,"z":25.5,"r":9.42477796076938,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medcab","x":-22.511,"z":26.333000000000002,"r":15.707963267948973,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-28,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-27.5,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-27,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-26.5,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-26,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-25.5,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-23.5,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-23,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-22.5,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-22,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-21.5,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":-21,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"workbench","x":-19.5,"z":28.5,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"console","x":-17,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"console","x":-14,"z":28.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"computer","x":-15.5,"z":28.5,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"console","x":63,"z":21,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"console","x":63,"z":15,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"computer","x":63,"z":19.7,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"computer","x":63,"z":16.3,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"shelfmetal","x":-13,"z":30.5,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"shelfmetal","x":-31.5,"z":31.5,"r":7.853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"printer","x":-14,"z":32,"r":10.210176124166829,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"monitor","x":62,"z":13.5,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"monitor","x":62,"z":22.5,"r":10.210176124166829,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"wirepanel","x":52.011,"z":15.155,"r":18.84955592153877,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"wirepanel","x":7.489,"z":23.1,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"wirepanel","x":-3.511,"z":32.167,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"wirepanel","x":-24.5,"z":28.189,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"wirepanel","x":-55,"z":21.156,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"wirepanel","x":-14.656,"z":-11.1,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"fueltank","x":-68,"z":1.5,"r":3.141592653589793,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"chair","x":15.6,"z":24.1,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"chair","x":21.3,"z":24.1,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"chair","x":18.4,"z":24.2,"r":9.42477796076938,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-30.9,"z":37.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-29,"z":37.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-27.1,"z":37.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-25.2,"z":37.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-23.3,"z":37.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-29,"z":38.4,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-27.1,"z":38.4,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-25.2,"z":38.4,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"servers","x":-23.3,"z":38.4,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pilotseat","x":61.6,"z":15.9,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pilotseat","x":61.6,"z":19,"r":7.853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"spacewin","x":38.800000000000004,"z":-3.8000000000000003,"r":5.497787143782138,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":-1},
+  {"k":"ivstand","x":-35,"z":18.2,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"ivstand","x":-35,"z":15.2,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"ivstand","x":-34.9,"z":12.2,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"ivstand","x":-35,"z":9.2,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"ivstand","x":-19.9,"z":10.8,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"o2tank","x":-23.7,"z":7.9,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"enginecore","x":-67.9,"z":40.4,"r":1.5707963267948966,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"spacepipe","x":41.4,"z":35.7,"r":4.71238898038469,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"spacepipe","x":41.4,"z":38.9,"r":4.71238898038469,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"spacepipe","x":41.4,"z":42.1,"r":4.71238898038469,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"spacepipe","x":41.4,"z":45.3,"r":4.71238898038469,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":40.1,"z":46.1,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":40.1,"z":42.1,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":40.1,"z":38.1,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":40.1,"z":34.1,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"mopbucket","x":-0.6,"z":45.2,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cargobox","x":5.3,"z":33.4,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"crates","x":-8.5,"z":60,"r":2.356194490192345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"recycle","x":6.5,"z":49.5,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pallet","x":-1.2,"z":59.4,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pallet","x":-2.3,"z":59.4,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":25.5,"z":37.6,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":28.3,"z":34.8,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipes","x":38.6,"z":49.1,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":11.2,"z":59.6,"r":2.356194490192345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":9.3,"z":57.7,"r":2.356194490192345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":21.7,"z":57.7,"r":3.9269908169872414,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":19.8,"z":59.6,"r":3.9269908169872414,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"labbench","x":20.8,"z":10.6,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"labbench","x":25.5,"z":10.6,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"plant","x":27.6,"z":10.6,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"aquarium","x":26.599999999999998,"z":20.4,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"planter","x":16.3,"z":20.3,"r":2.356194490192345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"planter","x":16.3,"z":16.7,"r":13.351768777756625,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"planter","x":19.2,"z":13.8,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"hedge","x":17.7,"z":15.2,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":21.3,"z":20.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":21.9,"z":20.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":22.5,"z":20.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cabinet","x":23.1,"z":20.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"mopbucket","x":20.8,"z":20.7,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"trash","x":25.1,"z":20.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"planter","x":27.799999999999997,"z":20.299999999999997,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"microscope","x":26.1,"z":10.8,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"sink","x":20,"z":12,"r":7.853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":61.6,"z":13.3,"r":5.602506898901797,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":61.6,"z":22.7,"r":3.822271061867582,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pilotseat","x":33.2,"z":1.3,"r":8.63937979737193,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"hatch","x":33.2,"z":1.3,"r":3.141592653589793,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"panel","x":34.2,"z":0.3,"r":5.497787143782138,"solid":true,"s":1.5,"sx":1.5,"sy":1.5,"sz":1.5,"y":0},
+  {"k":"powerbox","x":-31,"z":38.5,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cablespool","x":-5.5,"z":59,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"centrifuge","x":16.5,"z":18.5,"r":1.5707963267948966,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medscan","x":-17,"z":23.5,"r":3.9269908169872414,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"leafduct","x":6,"z":60,"r":10.995574287564278,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"o2plant","x":18.6,"z":20.2,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cafetable","x":8.5,"z":8.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cafetable","x":-8.5,"z":8.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cafetable","x":-8.5,"z":-3.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cafetable","x":8.5,"z":-3.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cafetable","x":0,"z":3.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"handpad","x":-78,"z":39,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"handpad","x":-78,"z":9,"r":6.283185307179586,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"vitalsboard","x":18.5,"z":30,"r":4.71238898038469,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"shieldpanel","x":24.5,"z":49.5,"r":7.853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"commsdesk","x":15.5,"z":60.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"commsdesk","x":17.5,"z":60.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"commsdesk","x":13.5,"z":60.5,"r":3.141592653589793,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medbed","x":-34.5,"z":10.5,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medbed","x":-34.5,"z":13.5,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medbed","x":-34.5,"z":16.5,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medbed","x":-34.5,"z":19.5,"r":1.5707963267948966,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"medbed","x":-20.5,"z":9.5,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"navconsole","x":62.9,"z":18,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cooler","x":16.4,"z":17.7,"r":7.853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"shelfmetal","x":6.2,"z":35.5,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"shelfmetal","x":6.2,"z":37.4,"r":4.71238898038469,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"starmap","x":59.5,"z":11.1,"r":5.602506898901797,"solid":false,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"cardswipe","x":22.2,"z":30,"r":7.853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"admintable","x":20.3,"z":30,"r":0,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0},
+  {"k":"specimen","x":23.2,"z":11,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"enginecore","x":-67.9,"z":9.899999999999999,"r":1.5707963267948966,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"fuelcan","x":-5.6,"z":44.2,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"pipewall","x":39.800000000000004,"z":6.8,"r":3.9269908169872414,"solid":false,"s":2,"sx":2,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":-42,"z":13,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":-40.1,"z":14.9,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":-46,"z":13,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"counter","x":-47.9,"z":14.9,"r":7.0685834705770345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"reactorcore","x":-83.3,"z":24,"r":1.5707963267948966,"solid":true,"s":2,"sx":2,"sy":1,"sz":2,"y":0},
+  {"k":"cambank","x":-44,"z":12,"r":0,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"enginebay","x":-66.5,"z":5.5,"r":1.5707963267948966,"solid":true,"s":2,"sx":2,"sy":1,"sz":2,"y":0},
+  {"k":"enginebay","x":-66.5,"z":45,"r":1.5707963267948966,"solid":true,"s":2,"sx":2,"sy":2,"sz":2,"y":0},
+  {"k":"monitor","x":-45.5,"z":12.5,"r":7.0685834705770345,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"monitor","x":-46.5,"z":13.5,"r":0.7853981633974483,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"monitor","x":-42.5,"z":12.5,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0},
+  {"k":"monitor","x":-41.5,"z":13.5,"r":5.497787143782138,"solid":true,"s":1,"sx":1,"sy":1,"sz":1,"y":0}
+ ],
+ "vents":[
+  {"id":"vczw5","name":"Electrical","x":-30.5,"z":29.5,"links":["vkl5e","vfrm2"]},
+  {"id":"vkl5e","name":"MEDBAY","x":-34.5,"z":21,"links":["vczw5","vfrm2"]},
+  {"id":"vfrm2","name":"Security","x":-39.5,"z":32.5,"links":["vkl5e","vczw5"]},
+  {"id":"v6ive","name":"Reactor","x":-78.5,"z":15,"links":["vcfhl"]},
+  {"id":"vcfhl","name":"Upper Engine","x":-53.5,"z":-1,"links":["v6ive"]},
+  {"id":"vl7u1","name":"Reactor","x":-74.5,"z":31.5,"links":["vgw5h"]},
+  {"id":"vgw5h","name":"Lower Engine","x":-54.5,"z":53.5,"links":["vl7u1"]},
+  {"id":"vixeq","name":"Cefeteria","x":16,"z":6,"links":["vh0b1","vbz3k"]},
+  {"id":"vh0b1","name":"Admin","x":11.5,"z":36,"links":["vixeq","vbz3k"]},
+  {"id":"vbz3k","name":"Pasillo","x":31.5,"z":21,"links":["vh0b1","vixeq"]},
+  {"id":"vl176","name":"Weapons","x":31.5,"z":-6,"links":["v4qgt"]},
+  {"id":"v4qgt","name":"Navigation","x":54.5,"z":11,"links":["vl176"]},
+  {"id":"vfki3","name":"Navigation","x":54.5,"z":25,"links":["vii0r"]},
+  {"id":"vii0r","name":"Shields","x":33.5,"z":50.5,"links":["vfki3"]}
+ ],
+ "tasks":[
+  {"id":"cu_tmu68pnqt1","type":"wires","name":"Conectar cables","x":-54.978,"z":21.455999999999996,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu68priy3","type":"wires","name":"Conectar cables","x":-3.5,"z":32.501,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu68pw9c4","type":"wires","name":"Conectar cables","x":7.5,"z":23.367,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu68pzoe7","type":"wires","name":"Conectar cables","x":51.99999999999999,"z":15.488999999999999,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu68qkhe6","type":"wires","name":"Conectar cables","x":-14.378,"z":-10.811,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu68qtv07","type":"wires","name":"Conectar cables","x":-24.5,"z":28.533,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu68roer7","type":"medscan","name":"Escaneo medico","x":-17.067,"z":23.578,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu6avfw02k8","type":"lockers","name":"Activar los escudos","x":24.587999999999997,"z":49.455999999999996,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu6cr7gb59r","type":"swipecard","name":"Pasar la tarjeta","x":22.5,"z":30,"kind":"common","chain":null,"step":0},
+  {"id":"cu_tmu6cry7s7bh","type":"fuelfill","name":"Llenar el bidón","x":-5.8999999999999995,"z":44.4,"kind":"long","chain":"cmu6cry7sd9","step":0},
+  {"id":"cu_tmu6cs2xy5g3","type":"fuelpour","name":"Verter en el motor superior","x":-65.7,"z":1.6,"kind":"long","chain":"cmu6cry7sd9","step":1},
+  {"id":"cu_tmu6cs5mj6ri","type":"fuelfill","name":"Llenar el bidón otra vez","x":-5.8999999999999995,"z":44.4,"kind":"long","chain":"cmu6cry7sd9","step":2},
+  {"id":"cu_tmu6csbup7ia","type":"fuelpour","name":"Verter en el motor inferior","x":-65.7,"z":49.1,"kind":"long","chain":"cmu6cry7sd9","step":3},
+  {"id":"cu_tmu6cso2o2qf","type":"garbagepull","name":"Soltar la basura","x":4.7,"z":60,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu6ct1lr744","type":"chartcourse","name":"Trazar la ruta","x":62.8,"z":18,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu6ctaph5jn","type":"sequence","name":"Encender el reactor","x":-81.9,"z":24.1,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tmu6ctm7d6qp","type":"asteroids","name":"Despejar asteroides","x":33.2,"z":1.3,"kind":"short","chain":null,"step":0}
+ ],
+ "cams":[
+  {"name":"Cámara 1","x":46.5,"z":15.2,"yaw":-1.1344640137963142,"yaw2":1.0471975511965976},
+  {"name":"Cámara 2","x":-23.9,"z":-0.3,"yaw":-1.0471975511965976,"yaw2":1.0471975511965976},
+  {"name":"Cámara 3","x":-64,"z":21,"yaw":-0.8726646259971648,"yaw2":2.443460952792061},
+  {"name":"Cámara 4","x":4.2,"z":23.2,"yaw":-1.1344640137963142,"yaw2":1.0471975511965976}
+ ],
+ "spawn":{"x":0,"z":3.5}, "spawnR":3.5, "emergency":{"x":0,"z":3.5}, "lights":{"x":-31.400000000000002,"z":39.199999999999996}, "camStation":{"x":-44,"z":12.2}, "comms":{"x":13.4,"z":59.7},
+ "repair":[], "o2":[{"x":25,"z":24},{"x":20.9,"z":12.3}], "reactor":[{"x":-78,"z":39},{"x":-78,"z":9}]
+};
+function mapSkeld(){ return buildCustomMap(SKELD_MAP_DATA, 'skeld'); }
 
 /* ---------------------------------------------------------------
    4) MIRA HQ
@@ -5129,21 +5303,21 @@ function mapMira(){
   M.task('t_ves_lockers','Revisar los casilleros','Vestuarios',-20,25,'lockers','common');
   M.vent('v_ves','Vestuarios',-24,32,['v_med','v_dec']);
 
-  M.room('Enfermeria',6,20,18,14,{floor:'#9fb0bd',wall:'#e4ecf2',o:{w:[[26,6]]}});
+  M.room('Enfermería',6,20,18,14,{floor:'#9fb0bd',wall:'#e4ecf2',o:{w:[[26,6]]}});
   place(M,'stretcher',10,26,0,true,1.0,2.2); place(M,'scanner',18,26,0,true,1.8,1.8);
-  M.task('t_med_scan','Enviar muestra de ADN','Enfermeria',18,26,'medscan','common');
-  M.vent('v_med','Enfermeria',22,22,['v_ves','v_caf']);
+  M.task('t_med_scan','Enviar muestra de ADN','Enfermería',18,26,'medscan','common');
+  M.vent('v_med','Enfermería',22,22,['v_ves','v_caf']);
 
   M.corridor('Descontaminacion',-3,10,6,10,{floor:'#7f8b98',wall:'#a8b4c0',o:{n:[[-3,6]],s:[[-3,6]]}});
   M.door('d_dec1','descon',-3,10,3,10); M.door('d_dec2','descon',-3,20,3,20);
   M.task('t_dec_switch','Activar la ducha de descontaminacion','Descontaminacion',0,15,'switches','short');
   M.vent('v_dec','Descontaminacion',2,12,['v_ves','v_gre']);
 
-  M.room('Cafeteria',-14,-8,28,18,{floor:'#8a93a0',wall:W,o:{s:[[-3,6]],n:[[-4,8]],w:[[-2,6]],e:[[-2,6]]}});
+  M.room('Cafetería',-14,-8,28,18,{floor:'#8a93a0',wall:W,o:{s:[[-3,6]],n:[[-4,8]],w:[[-2,6]],e:[[-2,6]]}});
   for(let i=0;i<4;i++) place(M,'table',-8+i*6,0,0,true,2.0,1.1);
   M.emergency={x:0,z:2}; place(M,'embutton',0,2,0,true,1.1,1.1);
-  M.task('t_caf_clean','Limpiar las mesas','Cafeteria',-10,5,'clean','short');
-  M.vent('v_caf','Cafeteria',-12,-6,['v_med','v_bal']);
+  M.task('t_caf_clean','Limpiar las mesas','Cafetería',-10,5,'clean','short');
+  M.vent('v_caf','Cafetería',-12,-6,['v_med','v_bal']);
 
   M.room('Balcon',18,-12,20,16,{floor:'#7e8894',noCeil:true,open:'e',o:{w:[[-2,6]]}});
   for(let i=0;i<4;i++) place(M,'plant',22+i*4,-10);
@@ -5175,7 +5349,7 @@ function mapMira(){
   M.corridor('Pasillo Central',-36,8,20,6,{floor:F,wall:W,o:{w:[[8,6]],e:[[8,6]],n:[[-24,6]]}});
   M.room('Oficina',-16,2,18,16,{floor:'#8a93a0',wall:W,o:{w:[[8,6]],n:[[-12,6]]}});
   for(let i=0;i<4;i++){ place(M,'desk',-13+i*4,6,0,true,1.4,.8); place(M,'chair',-13+i*4,7.2,Math.PI); }
-  M.task('t_off_code','Introducir codigo','Oficina',-3,14,'keypad','short');
+  M.task('t_off_code','Introducir código','Oficina',-3,14,'keypad','short');
   M.task('t_off_up','Subir el informe','Oficina',-13,6,'uploaddata','long',{chain:'rep',step:1,steps:2});
   M.vent('v_off','Oficina',-14,16,['v_rea','v_bal','v_adm']);
 
@@ -5185,10 +5359,10 @@ function mapMira(){
   M.task('t_adm_down','Descargar el informe','Admin',19,-22,'uploaddata','long',{chain:'rep',step:0,steps:2});
   M.vent('v_adm','Admin',20,-28,['v_off']);
 
-  M.room('Almacen',26,4,18,16,{floor:'#8a93a0',wall:W,o:{w:[[8,6]]}});
+  M.room('Almacén',26,4,18,16,{floor:'#8a93a0',wall:W,o:{w:[[8,6]]}});
   for(let i=0;i<5;i++) place(M,'crate',29+i*2.2,8,0,true,1.1,1.1);
-  M.task('t_alm_fuel','Llenar el tanque','Almacen',34,16,'fuelpour','long',{chain:'fuel',step:1,steps:2});
-  M.lightsRoom='Almacen'; M.lightsPos={x:42,z:16};
+  M.task('t_alm_fuel','Llenar el tanque','Almacén',34,16,'fuelpour','long',{chain:'fuel',step:1,steps:2});
+  M.lightsRoom='Almacén'; M.lightsPos={x:42,z:16};
   M.corridor('Pasillo Este',14,8,12,6,{floor:F,wall:W,o:{w:[[8,6]],e:[[8,6]]}});
 
   M.room('Comunicaciones',26,-14,16,14,{floor:'#8a93a0',wall:W,o:{s:[[30,6]]}});
@@ -5199,7 +5373,7 @@ function mapMira(){
   M.door('d_off','oficina',-12,2,-6,2);
   M.door('d_lab','laboratorio',-36,-12,-36,-6);
 
-  M.cam('c1','Cafeteria',-13,2.6,-7,Math.PI*0.25);
+  M.cam('c1','Cafetería',-13,2.6,-7,Math.PI*0.25);
   M.cam('c2','Invernadero',-15,2.6,-29,Math.PI*0.25);
   M.cam('c3','Reactor',-55,2.6,5,Math.PI*0.25);
   M.cam('c4','Plataforma',-7,2.6,45,Math.PI*0.25);
@@ -5209,102 +5383,609 @@ function mapMira(){
 
 /* ---------------------------------------------------------------
    5) POLUS
+   Hecho con el mismo formato que el creador de mapas (archivo
+   Polus.stmap del repositorio), siguiendo el plano del Polus real:
+   salas, caminos nevados, lago de lava, 12 ventilaciones, 6 camaras,
+   puertas saboteables y los estabilizadores sismicos.
    --------------------------------------------------------------- */
-function mapPolus(){
-  const M=new GameMap('polus','POLUS'); M.signStyle={bg:'#2a3444', color:'#dff2ff'};
-  M.outdoor=true; M.skyTop='#16233a'; M.skyBot='#5f7288';
-  M.fogColor=[96,112,132]; M.ambient=0.48; M.fogNearBase=6;
-  const W='#8b96a4', F='#6f7a88', SNOW='#dbe6ef';
-
-  M.room('Superficie',-70,-46,150,100,{floor:SNOW,noCeil:true,open:'nswe'});
-  for(let i=0;i<14;i++) place(M,'snowpile',rnd(-66,76),rnd(-42,50));
-
-  M.room('Nave',-14,34,20,16,{floor:'#5f6a78',wall:W,o:{n:[[-8,8]]}});
-  place(M,'crate',-10,40,0,true,1.1,1.1); place(M,'crate',3,40,0,true,1.1,1.1);
-  M.spawn={x:-4,z:40};
-  M.task('t_dro_fuel','Cargar combustible de la nave','Nave',-4,44,'fuelfill','long',{chain:'fuel',step:0,steps:2});
-
-  M.corridor('Rampa Sur',-7,22,6,12,{floor:F,noCeil:true,open:'nswe'});
-  M.room('Oficina',-30,4,22,18,{floor:'#7a8492',wall:W,o:{e:[[10,6]],s:[[-24,6]]}});
-  for(let i=0;i<4;i++){ place(M,'desk',-26+i*4.6,9,0,true,1.4,.8); place(M,'chair',-26+i*4.6,10.2,Math.PI); }
-  place(M,'computer',-28,18,0,true,1.1,.7);
-  M.task('t_off_down','Descargar datos','Oficina',-28,19.2,'uploaddata','long',{chain:'dat',step:0,steps:2});
-  M.task('t_off_code','Introducir el codigo','Oficina',-12,14,'keypad','short');
-  M.vent('v_off','Oficina',-28,6,['v_adm','v_lab']);
-
-  M.room('Admin',-4,4,18,14,{floor:'#7a8492',wall:W,o:{w:[[10,6]],n:[[0,6]]}});
-  place(M,'table',4,9,0,true,2.0,1.1);
-  M.emergency={x:4,z:9}; place(M,'embutton',4,9,0,true,1.1,1.1);
-  M.task('t_adm_swipe','Pasar la tarjeta','Admin',-2,15,'swipecard','short');
-  M.vent('v_adm','Admin',12,6,['v_off','v_com']);
-
-  M.corridor('Pasillo Oeste',-46,-8,16,6,{floor:F,noCeil:true,open:'nswe'});
-  M.room('Electricidad',-66,-22,20,18,{floor:'#5f6a78',wall:'#7f8a98',o:{e:[[-10,6]]}});
-  place(M,'wirepanel',-65,-18,Math.PI/2,false); place(M,'panel',-58,-18,0,false);
-  M.task('t_ele_wires','Reparar el cableado','Electricidad',-64.2,-18,'wires','short');
-  M.task('t_ele_power','Restaurar la energia','Electricidad',-58,-16.6,'acceptpower','long',{chain:'fuel',step:1,steps:2});
-  M.lightsRoom='Electricidad'; M.lightsPos={x:-60,z:-16.6};
-  M.vent('v_ele','Electricidad',-64,-6,['v_lab','v_o2']);
-
-  M.room('Laboratorio',-66,4,20,18,{floor:'#7a8492',wall:'#c6d2dc',o:{e:[[10,6]],n:[[-60,6]]}});
-  place(M,'table',-58,10,0,true,2.0,1.1); place(M,'reactor',-52,18,0,true,2.6,2.6);
-  M.task('t_lab_seq','Analizar el nucleo','Laboratorio',-62,8,'sequence','common');
-  M.repairPoint('r1','Refrigerante A',-62,20);
-  M.repairPoint('r2','Refrigerante B',-48,20);
-  M.vent('v_lab','Laboratorio',-64,20,['v_ele','v_off']);
-  M.corridor('Pasillo Lab',-46,10,16,6,{floor:F,noCeil:true,open:'nswe'});
-
-  M.room('Almacen',18,4,18,16,{floor:'#7a8492',wall:W,o:{w:[[10,6]],n:[[22,6]]}});
-  for(let i=0;i<5;i++) place(M,'crate',21+i*2.2,8,0,true,1.1,1.1);
-  M.task('t_alm_clean','Limpiar el almacen','Almacen',30,16,'clean','short');
-  M.corridor('Pasillo Este',12,8,6,6,{floor:F,noCeil:true,open:'nswe'});
-
-  M.room('Comunicaciones',18,-16,16,14,{floor:'#7a8492',wall:W,o:{s:[[22,6]]}});
-  place(M,'computer',22,-13,0,true,1.1,.7);
-  M.task('t_com_up','Subir los datos','Comunicaciones',22,-11.8,'uploaddata','long',{chain:'dat',step:1,steps:2});
-  M.task('t_com_seq','Sintonizar la antena','Comunicaciones',30,-8,'sequence','common');
-  M.vent('v_com','Comunicaciones',32,-14,['v_adm','v_o2']);
-
-  M.room('Armeria',44,-14,18,16,{floor:'#7a8492',wall:W,o:{w:[[-8,6]]}});
-  place(M,'monitor',52,-12,0,true,1.0,.5); place(M,'panel',47,-12,0,false);
-  M.task('t_arm_aim','Calibrar el canon','Armeria',52,-10.6,'asteroids','short');
-  M.corridor('Pasillo Armeria',34,-8,10,6,{floor:F,noCeil:true,open:'nswe'});
-
-  M.room('O2',44,8,16,14,{floor:'#7a8492',wall:W,o:{w:[[12,6]]}});
-  place(M,'ventfan',50,9,0,false);
-  M.task('t_o2_clean','Limpiar el filtro','O2',50,11,'o2filter','short');
-  M.task('t_o2_water','Registrar el agua','O2',56,18,'recordtemp','short');
-  M.vent('v_o2','O2',56,10,['v_com','v_ele','v_spe']);
-  M.corridor('Pasillo O2',36,10,8,6,{floor:F,noCeil:true,open:'nswe'});
-
-  M.room('Especimenes',44,26,18,16,{floor:'#5f6a78',wall:'#8a95a3',o:{n:[[48,6]]}});
-  place(M,'scanner',52,32,0,true,1.8,1.8); place(M,'barrel',47,38,0,true,.9,.9);
-  M.task('t_spe_scan','Enviar muestra de ADN','Especimenes',52,32,'medscan','common');
-  M.task('t_spe_machine','Reparar la incubadora','Especimenes',60,38,'machine','long',{chain:'inc',step:0,steps:3});
-  M.vent('v_spe','Especimenes',60,28,['v_o2']);
-  M.corridor('Rampa Especimenes',46,20,6,6,{floor:F,noCeil:true,open:'nswe'});
-
-  M.room('Descontaminacion',6,-6,6,10,{floor:'#6f7a88',wall:'#9aa5b3',o:{n:[[6,6]],s:[[6,6]]}});
-  M.door('d_dec1','descon',6,-6,12,-6); M.door('d_dec2','descon',6,4,12,4);
-  M.task('t_dec','Activar la descontaminacion','Descontaminacion',9,-1,'switches','short');
-
-  for(let i=0;i<8;i++) place(M,'lamp',-50+i*15,-30);
-  place(M,'lavapool',-20,-30); place(M,'lavapool',30,30);
-  M.task('t_sur_align','Alinear la antena exterior','Superficie',0,-30,'align','short');
-  M.task('t_sur_machine','Reparar el generador exterior','Superficie',-36,-34,'machine','long',{chain:'inc',step:1,steps:3});
-  M.task('t_sur_clean','Despejar la nieve','Superficie',40,-34,'clean','short');
-
-  M.door('d_off','oficina',-24,22,-18,22);
-  M.door('d_com','comunicaciones',22,-2,28,-2);
-  M.door('d_alm','almacen',22,4,28,4);
-
-  M.cam('c1','Oficina',-29,2.6,5,Math.PI*0.25);
-  M.cam('c2','Laboratorio',-65,2.6,5,Math.PI*0.25);
-  M.cam('c3','Almacen',19,2.6,5,Math.PI*0.25);
-  M.cam('c4','Especimenes',45,2.6,27,Math.PI*0.25);
-  decoPolus(M);
-  return M.finalize();
-}
+const POLUS_MAP_DATA = {
+ "format":"sicariato-map", "version":1, "name":"Polus", "theme":"space", "outdoor":true,
+ "sky":["#140c24","#4a3767"], "ground":"#5d4a7a", "groundMat":"stone",
+ "rooms":[
+  {"kind":"hall","name":"","x":-56.1,"z":-54.4,"w":25.5,"d":22.1,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-51.0,-49.3],[-34.0,-54.4],[-30.6,-40.8],[-40.8,-32.3],[-56.1,-37.4]],"pgaps":[[],[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-1.7,"z":-54.4,"w":27.2,"d":13.6,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[0.0,-54.4],[18.7,-52.7],[25.5,-44.2],[10.2,-40.8],[-1.7,-45.9]],"pgaps":[[],[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":49.3,"z":-52.7,"w":28.9,"d":15.3,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[49.3,-52.7],[76.5,-51.0],[78.2,-37.4],[56.1,-37.4]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-79.9,"z":-56.1,"w":18.7,"d":18.7,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-79.9,-52.7],[-66.3,-56.1],[-61.2,-42.5],[-78.2,-37.4]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-20.4,"z":23.8,"w":15.3,"d":11.9,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-17.0,25.5],[-6.8,23.8],[-5.1,35.7],[-15.3,35.7],[-20.4,30.6]],"pgaps":[[],[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":18.7,"z":35.7,"w":25.5,"d":13.6,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[22.1,35.7],[34.0,35.7],[44.2,42.5],[34.0,49.3],[18.7,47.6]],"pgaps":[[],[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-79.9,"z":40.8,"w":17.0,"d":8.5,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-79.9,40.8],[-66.3,40.8],[-62.9,49.3],[-79.9,49.3]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":73.95,"z":-11.9,"w":5.95,"d":25.5,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[73.95,-10.2],[79.9,-11.9],[79.9,13.6],[74.8,11.9]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-34.0,"z":-6.8,"w":10.2,"d":8.5,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-34.0,-3.4],[-26.35,-6.8],[-23.8,0.0],[-30.6,1.7]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-10.2,"z":44.2,"w":27.2,"d":5.1,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-10.2,49.3],[6.8,44.2],[17.0,49.3]],"pgaps":[[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":49.3,"z":42.5,"w":28.9,"d":6.8,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[51.0,42.5],[71.4,42.5],[78.2,49.3],[49.3,49.3]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-51.0,"z":25.5,"w":6.8,"d":15.3,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-51.0,25.5],[-44.2,25.5],[-44.2,40.8],[-51.0,40.8]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":17.0,"z":-6.8,"w":11.9,"d":10.2,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[17.0,-6.8],[28.9,-6.8],[28.9,3.4],[18.7,3.4]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-49.3,"z":-34.0,"w":15.3,"d":10.2,"floor":"#e6eaf3","wall":"#e6eaf3","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-37.4,-34.0],[-34.0,-25.5],[-42.5,-23.8],[-49.3,-28.9]],"pgaps":[[],[],[],[]],"mat":"snow"},
+  {"kind":"hall","name":"","x":-35.7,"z":-59.5,"w":34.0,"d":37.4,"floor":"#6a6c78","wall":"#6a6c78","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-35.7,-59.5],[-1.7,-59.5],[-1.7,-22.1],[-35.7,-22.1]],"pgaps":[[],[],[],[]],"mat":"metalfloor"},
+  {"kind":"hall","name":"","x":-34.0,"z":-25.5,"w":30.6,"d":8.5,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-34.0,-25.5],[-3.4,-25.5],[-3.4,-17.0],[-34.0,-17.0]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-37.4,"z":-20.4,"w":52.7,"d":5.1,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-37.4,-20.4],[15.3,-20.4],[15.3,-15.3],[-37.4,-15.3]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":6.8,"z":-27.2,"w":8.5,"d":20.4,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[6.8,-27.2],[15.3,-27.2],[15.3,-6.8],[6.8,-6.8]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-62.9,"z":-0.85,"w":10.2,"d":48.45,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-62.9,-0.85],[-52.7,-0.85],[-52.7,47.6],[-62.9,47.6]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-73.1,"z":-4.25,"w":10.2,"d":6.8,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-73.1,-4.25],[-62.9,-4.25],[-62.9,2.55],[-73.1,2.55]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-37.4,"z":-15.3,"w":11.9,"d":6.8,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-37.4,-15.3],[-25.5,-15.3],[-25.5,-8.5],[-37.4,-8.5]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-25.5,"z":-17.0,"w":6.8,"d":59.5,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-25.5,-17.0],[-18.7,-17.0],[-18.7,42.5],[-25.5,42.5]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-52.7,"z":17.85,"w":34.0,"d":6.8,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-52.7,17.85],[-18.7,17.85],[-18.7,24.65],[-52.7,24.65]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-18.7,"z":-11.9,"w":5.1,"d":4.25,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-18.7,-11.9],[-13.6,-11.9],[-13.6,-7.65],[-18.7,-7.65]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-52.7,"z":42.5,"w":49.3,"d":5.1,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-52.7,42.5],[-3.4,42.5],[-3.4,47.6],[-52.7,47.6]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-18.7,"z":35.7,"w":15.3,"d":6.8,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-18.7,35.7],[-3.4,35.7],[-3.4,42.5],[-18.7,42.5]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":28.9,"z":-10.2,"w":4.25,"d":35.7,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[28.9,-10.2],[33.15,-10.2],[33.15,25.5],[28.9,25.5]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":6.8,"z":-10.2,"w":51.0,"d":3.4,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[6.8,-10.2],[57.8,-10.2],[57.8,-6.8],[6.8,-6.8]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"hall","name":"","x":-3.4,"z":-4.25,"w":6.8,"d":9.35,"floor":"#a08bb8","wall":"#a08bb8","h":3.1,"ceil":false,"open":true,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-3.4,-4.25],[3.4,-4.25],[3.4,5.1],[-3.4,5.1]],"pgaps":[[],[],[],[]],"mat":"stone"},
+  {"kind":"room","name":"Dropship","x":-26.35,"z":-56.1,"w":15.3,"d":30.6,"floor":"#7f868f","wall":"#b3b9c1","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-26.35,-47.6],[-22.95,-56.1],[-14.45,-56.1],[-11.05,-47.6],[-11.05,-25.5],[-26.35,-25.5]],"pgaps":[[],[],[],[],[[5.525,4.25]],[]]},
+  {"kind":"room","name":"Electrical","x":-62.9,"z":-22.95,"w":25.5,"d":22.1,"floor":"#50555b","wall":"#9c9a8c","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-62.9,-22.95],[-37.4,-22.95],[-37.4,-0.85],[-62.9,-0.85]],"pgaps":[[],[[8.5,5.1]],[[17.0,4.25]],[]]},
+  {"kind":"room","name":"Security","x":-76.5,"z":-17.85,"w":13.6,"d":13.6,"floor":"#3a5476","wall":"#8c98a3","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-76.5,-17.85],[-62.9,-17.85],[-62.9,-4.25],[-76.5,-4.25]],"pgaps":[[],[],[[4.675,4.25]],[]]},
+  {"kind":"room","name":"O2","x":-78.2,"z":2.55,"w":15.3,"d":13.6,"floor":"#5f6b66","wall":"#a2ada5","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-78.2,2.55],[-62.9,2.55],[-62.9,16.15],[-78.2,16.15]],"pgaps":[[],[[4.25,4.25]],[],[]]},
+  {"kind":"room","name":"Boiler Room","x":-78.2,"z":17.85,"w":15.3,"d":21.25,"floor":"#4b4644","wall":"#877a70","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-78.2,17.85],[-62.9,17.85],[-62.9,39.1],[-78.2,39.1]],"pgaps":[[],[[12.75,4.25]],[],[]]},
+  {"kind":"room","name":"Communications","x":-42.5,"z":2.55,"w":13.6,"d":15.3,"floor":"#56606b","wall":"#95a3ae","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-42.5,2.55],[-28.9,2.55],[-28.9,17.85],[-42.5,17.85]],"pgaps":[[],[],[[5.1,4.25]],[]]},
+  {"kind":"room","name":"Weapons","x":-42.5,"z":24.65,"w":17.0,"d":17.85,"floor":"#474c55","wall":"#838b95","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-42.5,24.65],[-25.5,24.65],[-25.5,42.5],[-42.5,42.5]],"pgaps":[[[5.95,4.25]],[[5.95,4.25]],[],[]]},
+  {"kind":"room","name":"Storage","x":-13.6,"z":-15.3,"w":20.4,"d":11.05,"floor":"#6b655b","wall":"#8f887b","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-13.6,-15.3],[6.8,-15.3],[6.8,-4.25],[-13.6,-4.25]],"pgaps":[[],[],[[5.1,4.25]],[[3.4,4.25]]]},
+  {"kind":"room","name":"Office","x":-18.7,"z":5.1,"w":47.6,"d":15.3,"floor":"#3d5a94","wall":"#b9a88f","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-18.7,5.1],[28.9,5.1],[28.9,14.45],[18.7,14.45],[18.7,20.4],[-18.7,20.4]],"pgaps":[[[16.15,5.1]],[[2.55,4.25]],[],[],[],[[5.1,5.1]]],"mat":"carpet"},
+  {"kind":"hall","name":"","x":3.4,"z":20.4,"w":4.25,"d":2.55,"floor":"#3a4f7e","wall":"#b9a88f","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[3.4,20.4],[7.65,20.4],[7.65,22.95],[3.4,22.95]],"pgaps":[[],[],[],[]],"mat":"carpet"},
+  {"kind":"room","name":"Admin","x":-3.4,"z":22.95,"w":22.1,"d":21.25,"floor":"#2d4674","wall":"#a8987f","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[-3.4,22.95],[18.7,22.95],[18.7,44.2],[-3.4,44.2]],"pgaps":[[],[],[],[[3.4,4.25]]],"mat":"carpet"},
+  {"kind":"room","name":"Laboratory","x":15.3,"z":-34.0,"w":57.8,"d":22.1,"floor":"#d3dbe0","wall":"#e8eef1","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[15.3,-34.0],[64.6,-34.0],[64.6,-18.7],[73.1,-18.7],[73.1,-11.9],[15.3,-11.9]],"pgaps":[[],[[5.1,4.25]],[],[],[],[[8.5,5.1]]],"mat":"tile"},
+  {"kind":"room","name":"Medbay","x":64.6,"z":-34.0,"w":13.6,"d":15.3,"floor":"#bcd0d6","wall":"#dde8eb","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[64.6,-34.0],[78.2,-34.0],[78.2,-18.7],[64.6,-18.7]],"pgaps":[[],[],[],[[5.95,4.25]]],"mat":"tile"},
+  {"kind":"hall","name":"","x":59.5,"z":-11.9,"w":5.95,"d":8.5,"floor":"#8c939b","wall":"#b8bec5","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[59.5,-11.9],[65.45,-11.9],[65.45,-3.4],[59.5,-3.4]],"pgaps":[[],[],[],[]]},
+  {"kind":"room","name":"Decontamination","x":57.8,"z":-3.4,"w":9.35,"d":6.8,"floor":"#9aa1a9","wall":"#c3c8ce","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[57.8,-3.4],[67.15,-3.4],[67.15,3.4],[57.8,3.4]],"pgaps":[[],[],[],[]]},
+  {"kind":"hall","name":"","x":59.5,"z":3.4,"w":5.95,"d":13.6,"floor":"#8c939b","wall":"#b8bec5","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[59.5,3.4],[65.45,3.4],[65.45,17.0],[59.5,17.0]],"pgaps":[[],[],[],[]]},
+  {"kind":"hall","name":"","x":18.7,"z":27.2,"w":11.9,"d":5.95,"floor":"#8c939b","wall":"#b8bec5","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[18.7,27.2],[30.6,27.2],[30.6,33.15],[18.7,33.15]],"pgaps":[[],[],[],[]]},
+  {"kind":"room","name":"Decontamination","x":30.6,"z":26.35,"w":6.8,"d":7.65,"floor":"#9aa1a9","wall":"#c3c8ce","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[30.6,26.35],[37.4,26.35],[37.4,34.0],[30.6,34.0]],"pgaps":[[],[],[],[]]},
+  {"kind":"hall","name":"","x":37.4,"z":27.2,"w":11.9,"d":5.95,"floor":"#8c939b","wall":"#b8bec5","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[37.4,27.2],[49.3,27.2],[49.3,33.15],[37.4,33.15]],"pgaps":[[],[],[],[]]},
+  {"kind":"room","name":"Specimen Room","x":49.3,"z":17.0,"w":23.8,"d":23.8,"floor":"#7a818a","wall":"#5a6069","h":3.1,"ceil":true,"open":false,"gaps":{"n":[],"s":[],"w":[],"e":[]},"poly":[[55.25,17.0],[67.15,17.0],[73.1,22.95],[73.1,34.85],[67.15,40.8],[55.25,40.8],[49.3,34.85],[49.3,22.95]],"pgaps":[[],[],[],[],[],[],[],[]]}
+ ],
+ "walls":[
+  {"x1":-49.3,"z1":-16.15,"x2":-49.3,"z2":-5.1,"h":3.1,"color":"#8d8b7e"},
+  {"x1":-49.3,"z1":-5.1,"x2":-43.35,"z2":-5.1,"h":3.1,"color":"#8d8b7e"},
+  {"x1":37.4,"z1":-5.1,"x2":51.0,"z2":-5.95,"h":1.1,"color":"#4a3346"},
+  {"x1":51.0,"z1":-5.95,"x2":57.8,"z2":-1.7,"h":1.1,"color":"#4a3346"},
+  {"x1":57.8,"z1":-1.7,"x2":57.8,"z2":8.5,"h":1.1,"color":"#4a3346"},
+  {"x1":57.8,"z1":8.5,"x2":51.0,"z2":13.6,"h":1.1,"color":"#4a3346"},
+  {"x1":51.0,"z1":13.6,"x2":40.8,"z2":14.45,"h":1.1,"color":"#4a3346"},
+  {"x1":40.8,"z1":14.45,"x2":35.7,"z2":8.5,"h":1.1,"color":"#4a3346"},
+  {"x1":35.7,"z1":8.5,"x2":34.0,"z2":1.7,"h":1.1,"color":"#4a3346"},
+  {"x1":34.0,"z1":1.7,"x2":37.4,"z2":-5.1,"h":1.1,"color":"#4a3346"},
+  {"x1":-81.6,"z1":-64.6,"x2":81.6,"z2":-64.6,"h":4.0,"color":"#3b2f52"},
+  {"x1":81.6,"z1":-64.6,"x2":81.6,"z2":51.0,"h":4.0,"color":"#3b2f52"},
+  {"x1":81.6,"z1":51.0,"x2":-81.6,"z2":51.0,"h":4.0,"color":"#3b2f52"},
+  {"x1":-81.6,"z1":51.0,"x2":-81.6,"z2":-64.6,"h":4.0,"color":"#3b2f52"}
+ ],
+ "props":[
+  {"k":"dropseat","x":-25.835,"z":-44.2,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-11.565,"z":-44.2,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-25.835,"z":-40.375,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-11.565,"z":-40.375,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-25.835,"z":-36.55,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-11.565,"z":-36.55,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-25.835,"z":-32.725,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dropseat","x":-11.565,"z":-32.725,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"navconsole","x":-18.7,"z":-55.54,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pilotseat","x":-18.7,"z":-53.465,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":-15.81,"z":-55.685,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"terminal2","x":-21.59,"z":-55.72,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacewin","x":-18.7,"z":-56.032,"r":0,"solid":false,"s":2.0,"sx":2.0,"sy":0.6,"sz":1.0,"y":1.15},
+  {"k":"starmap","x":-11.21,"z":-46.92,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-25.995,"z":-29.07,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-25.995,"z":-30.26,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacesuit","x":-24.82,"z":-48.025,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-12.41,"z":-29.24,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-12.41,"z":-30.09,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-24.99,"z":-26.69,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-12.41,"z":-26.69,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-12.58,"z":-27.88,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":-26.01,"z":-39.1,"r":1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":-11.39,"z":-39.1,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":-18.7,"z":-24.395,"r":0,"solid":false,"s":1.7,"sx":1.7,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"enginebay","x":-30.43,"z":-34.0,"r":0,"solid":true,"s":2.0,"sx":2.0,"sy":1.2,"sz":2.4,"y":0.0},
+  {"k":"enginebay","x":-6.97,"z":-34.0,"r":0,"solid":true,"s":2.0,"sx":2.0,"sy":1.2,"sz":2.4,"y":0.0},
+  {"k":"thruster","x":-30.43,"z":-28.22,"r":3.142,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
+  {"k":"thruster","x":-6.97,"z":-28.22,"r":3.142,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
+  {"k":"fueltank","x":-34.17,"z":-38.675,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"flag","x":-33.575,"z":-23.12,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"flag","x":-3.825,"z":-23.12,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-34.425,"z":-42.5,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-33.49,"z":-43.435,"r":0.4,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crates","x":-3.91,"z":-40.8,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":-34.68,"z":-36.805,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":-34.17,"z":-36.635,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"drone","x":-3.825,"z":-49.3,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pillar","x":-64.6,"z":-34.255,"r":0.0,"solid":true,"s":1.3,"sx":1.3,"sy":2.3,"sz":1.3,"y":0.0},
+  {"k":"emerglight","x":-63.495,"z":-34.255,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":-64.6,"z":-31.11,"r":0,"solid":false,"s":0.9,"sx":0.9,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pillar","x":11.05,"z":-40.205,"r":0.0,"solid":true,"s":1.3,"sx":1.3,"sy":2.3,"sz":1.3,"y":0.0},
+  {"k":"emerglight","x":12.155,"z":-40.205,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":11.05,"z":-37.06,"r":0,"solid":false,"s":0.9,"sx":0.9,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirepanel","x":-60.35,"z":-22.775,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fusebox","x":-58.225,"z":-22.72,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fusebox","x":-57.12,"z":-22.72,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"powerbox","x":-49.81,"z":-22.485,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"powerbox","x":-48.365,"z":-22.485,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"powerbox","x":-46.92,"z":-22.485,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-42.16,"z":-22.59,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":-40.12,"z":-22.535,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-49.81,"z":-14.79,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-49.81,"z":-12.92,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-49.81,"z":-11.05,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-49.81,"z":-9.18,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-48.79,"z":-14.45,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-48.79,"z":-12.58,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"generator","x":-45.05,"z":-10.71,"r":0.2,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"generator","x":-45.05,"z":-12.92,"r":0.2,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cablespool","x":-56.1,"z":-7.65,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cablespool","x":-57.97,"z":-5.78,"r":0.6,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cablespool","x":-42.925,"z":-2.89,"r":1.2,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"workbench","x":-62.435,"z":-12.75,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"toolbox","x":-61.54,"z":-14.79,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-62.54,"z":-18.275,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-62.54,"z":-7.82,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirebundle","x":-61.88,"z":-1.17,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirebundle","x":-41.48,"z":-1.17,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirebundle","x":-37.72,"z":-19.975,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirebundle","x":-37.72,"z":-5.1,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-42.5,"z":-1.36,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-44.37,"z":-1.36,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":-56.525,"z":-2.04,"r":0,"solid":false,"s":0.8,"sx":0.8,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":-38.59,"z":-11.9,"r":1.571,"solid":false,"s":0.9,"sx":0.9,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"extinguisher","x":-37.74,"z":-7.82,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":-38.675,"z":-21.505,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":-39.44,"z":-21.76,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cambank","x":-69.7,"z":-17.39,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"counter","x":-75.99,"z":-12.325,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":-75.99,"z":-13.005,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":-75.99,"z":-11.645,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"counter","x":-63.41,"z":-11.475,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":-63.41,"z":-12.155,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":-63.41,"z":-10.795,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-69.36,"z":-15.045,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-74.29,"z":-12.325,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-65.11,"z":-11.475,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-75.48,"z":-4.605,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-74.46,"z":-4.605,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallclock","x":-65.025,"z":-4.385,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"trash","x":-63.92,"z":-5.44,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"tree","x":-72.25,"z":7.65,"r":0.0,"solid":true,"s":0.62,"sx":0.62,"sy":0.62,"sz":0.62,"y":0.0},
+  {"k":"planter","x":-73.78,"z":9.69,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"planter","x":-70.72,"z":9.69,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"planter","x":-73.78,"z":5.61,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"planter","x":-70.72,"z":5.61,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2plant","x":-77.495,"z":4.42,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2plant","x":-77.495,"z":8.5,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"leafduct","x":-77.49,"z":12.24,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirepanel","x":-65.875,"z":2.725,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-68.51,"z":2.91,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":-70.21,"z":15.598,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":-69.53,"z":15.598,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":-68.85,"z":15.598,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-67.49,"z":15.47,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-66.725,"z":15.47,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-65.96,"z":15.47,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dumpster","x":-75.82,"z":15.505,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"trashchute","x":-73.27,"z":15.54,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":-63.24,"z":13.77,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"mopbucket","x":-63.92,"z":3.74,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"boiler","x":-77.265,"z":21.42,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"boiler","x":-77.265,"z":24.99,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipes","x":-68.425,"z":18.07,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipes","x":-64.94,"z":18.07,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-75.225,"z":38.8,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-72.25,"z":38.8,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"manifold","x":-63.26,"z":21.76,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"manifold","x":-63.26,"z":24.82,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"tank","x":-70.125,"z":25.67,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fueltank","x":-75.48,"z":29.07,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spaceheater","x":-63.23,"z":37.74,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"generator","x":-75.82,"z":37.23,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cooler","x":-66.81,"z":38.547,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cooler","x":-67.49,"z":38.547,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cooler","x":-68.17,"z":38.547,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"handpad","x":-72.25,"z":31.025,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"handpad","x":-72.25,"z":34.85,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":-70.21,"z":38.335,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":-70.975,"z":38.335,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":-70.55,"z":37.57,"r":1.1,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":-77.775,"z":32.81,"r":1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"commsdesk","x":-39.61,"z":3.06,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"commsdesk","x":-37.57,"z":3.06,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-39.61,"z":5.44,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-37.57,"z":5.44,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-29.41,"z":9.52,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"servers","x":-29.41,"z":11.39,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"panel","x":-29.105,"z":14.28,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirepanel","x":-42.325,"z":14.875,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-42.14,"z":9.35,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-42.14,"z":11.05,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-41.31,"z":10.2,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cork","x":-30.94,"z":17.715,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cablespool","x":-40.46,"z":16.49,"r":0.4,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"satellite","x":-35.7,"z":-1.275,"r":0,"solid":true,"s":0.9,"sx":0.9,"sy":0.9,"sz":0.9,"y":0.0},
+  {"k":"antenna","x":-44.71,"z":5.1,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacewin","x":-34.0,"z":42.415,"r":3.142,"solid":false,"s":2.4,"sx":2.4,"sy":1.0,"sz":1.0,"y":0.25},
+  {"k":"weaponseat","x":-34.0,"z":38.59,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":-38.76,"z":42.085,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":-29.24,"z":42.085,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-42.14,"z":28.22,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-41.14,"z":29.24,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-40.46,"z":25.01,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-27.37,"z":25.01,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-42.145,"z":34.0,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-42.145,"z":35.02,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"spacelocker","x":-42.145,"z":36.04,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":-25.71,"z":38.675,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":-25.71,"z":27.625,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crates","x":-39.61,"z":39.78,"r":0.1,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-26.52,"z":41.48,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":-26.52,"z":40.715,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"extinguisher","x":-25.84,"z":29.24,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":-34.0,"z":38.59,"r":0,"solid":false,"s":1.3,"sx":1.3,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-10.88,"z":-14.94,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-9.18,"z":-14.94,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-7.48,"z":-14.94,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":-5.78,"z":-14.94,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fueltank","x":-1.275,"z":-13.09,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":0.425,"z":-12.24,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":0.85,"z":-12.58,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fuelcan","x":0.595,"z":-13.09,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crates","x":5.015,"z":-14.11,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crates","x":5.015,"z":-12.24,"r":0.15,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crates","x":3.06,"z":-14.11,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crates","x":5.015,"z":-10.37,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-11.73,"z":-5.865,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-10.71,"z":-5.865,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-11.22,"z":-6.885,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":-9.69,"z":-5.865,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":5.95,"z":-5.865,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":5.95,"z":-6.8,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":5.1,"z":-5.695,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pallet","x":-7.14,"z":-9.18,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pallet","x":-5.95,"z":-10.03,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"crate","x":-7.14,"z":-9.18,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.15},
+  {"k":"crate","x":-5.95,"z":-10.03,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.15},
+  {"k":"crate","x":-7.14,"z":-9.18,"r":0.3,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":1.15},
+  {"k":"conveyor","x":-3.57,"z":-8.33,"r":1.571,"solid":true,"s":0.9,"sx":0.9,"sy":0.9,"sz":0.9,"y":0.0},
+  {"k":"mopbucket","x":6.12,"z":-8.84,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"table","x":5.1,"z":10.455,"r":0,"solid":true,"s":1.6,"sx":1.6,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"table","x":5.1,"z":15.045,"r":0,"solid":true,"s":1.6,"sx":1.6,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-15.3,"z":5.46,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-15.3,"z":7.055,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-9.35,"z":5.46,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":-9.35,"z":7.055,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"computer","x":-12.325,"z":5.46,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirepanel","x":11.475,"z":5.275,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cardswipe","x":22.1,"z":5.525,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":25.5,"z":5.515,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"vitalsboard","x":21.675,"z":14.275,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"sofa","x":26.01,"z":13.94,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"lamp2","x":28.22,"z":13.77,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cooler","x":-18.317,"z":19.21,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":18.305,"z":15.47,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":18.305,"z":16.065,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":18.305,"z":16.66,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":18.305,"z":17.255,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":18.305,"z":17.85,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"printer","x":14.96,"z":20.04,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"bookshelf","x":-3.06,"z":20.115,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"bookshelf","x":-5.1,"z":20.115,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cork","x":0.17,"z":20.265,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"whiteboard","x":-9.35,"z":20.265,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":-17.85,"z":5.95,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":28.05,"z":6.035,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":17.85,"z":19.55,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":-7.82,"z":19.55,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallclock","x":17.17,"z":5.235,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"admintable","x":7.65,"z":33.575,"r":0,"solid":true,"s":1.35,"sx":1.35,"sy":1.35,"sz":1.35,"y":0.0},
+  {"k":"chair","x":4.42,"z":33.575,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":10.88,"z":33.575,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":7.65,"z":36.04,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"chair","x":7.65,"z":31.11,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":-3.005,"z":24.65,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":-3.005,"z":25.245,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":-3.005,"z":25.84,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cabinet","x":-3.005,"z":26.435,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":12.41,"z":23.16,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":13.94,"z":23.16,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"monitor","x":15.47,"z":23.16,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":2.55,"z":43.785,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":18.34,"z":39.61,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":18.34,"z":37.91,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cork","x":-3.265,"z":30.6,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":17.85,"z":43.35,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":-2.55,"z":43.35,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":17.85,"z":23.8,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"enginecore","x":20.23,"z":-30.77,"r":0.3,"solid":true,"s":0.95,"sx":0.95,"sy":0.95,"sz":0.95,"y":0.0},
+  {"k":"dish","x":39.1,"z":-31.11,"r":3.142,"solid":true,"s":0.75,"sx":0.75,"sy":0.75,"sz":0.75,"y":0.0},
+  {"k":"console","x":28.05,"z":-33.585,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"console","x":29.92,"z":-33.585,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"terminal2","x":49.3,"z":-33.62,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":25.5,"z":-20.4,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":25.5,"z":-16.49,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":34.0,"z":-20.4,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":34.0,"z":-16.49,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":42.5,"z":-20.4,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":42.5,"z":-16.49,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"centrifuge","x":48.875,"z":-20.4,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"samplerack","x":49.81,"z":-20.57,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"centrifuge","x":48.875,"z":-16.66,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":52.275,"z":-26.35,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":54.4,"z":-26.35,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":56.525,"z":-26.35,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":56.525,"z":-12.41,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"skeleton","x":16.49,"z":-13.6,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"hologram","x":59.925,"z":-29.41,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirepanel","x":61.625,"z":-33.825,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"sink","x":15.68,"z":-31.28,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"aquarium","x":44.625,"z":-33.68,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cryopod","x":15.875,"z":-15.81,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cryopod","x":15.875,"z":-17.17,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"samplerack","x":34.425,"z":-33.77,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"samplerack","x":35.275,"z":-33.77,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"whiteboard","x":37.4,"z":-12.035,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"plant","x":72.42,"z":-12.92,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":63.92,"z":-32.98,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"o2tank","x":63.155,"z":-32.98,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"medscan","x":71.4,"z":-26.35,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"medbed","x":77.08,"z":-31.79,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"medbed","x":77.08,"z":-30.26,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"medbed","x":77.08,"z":-21.42,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"ivstand","x":75.65,"z":-23.97,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"ivstand","x":75.65,"z":-27.88,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"medcab","x":68.0,"z":-33.84,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"medcab","x":69.02,"z":-33.84,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"vitalsboard","x":71.825,"z":-18.875,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wirepanel","x":64.775,"z":-21.25,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"surgerylight","x":76.67,"z":-31.025,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"decontam","x":58.48,"z":0.0,"r":1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"decontam","x":66.47,"z":0.0,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":58.225,"z":-2.55,"r":1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":66.725,"z":2.55,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":62.475,"z":-2.89,"r":0,"solid":false,"s":1.8,"sx":1.8,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":62.475,"z":2.89,"r":0,"solid":false,"s":1.8,"sx":1.8,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":59.8,"z":8.5,"r":1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":65.15,"z":-7.65,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"decontam","x":34.0,"z":27.03,"r":0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"decontam","x":34.0,"z":33.32,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":31.45,"z":26.775,"r":0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":36.55,"z":33.575,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":31.11,"z":30.175,"r":1.571,"solid":false,"s":1.8,"sx":1.8,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cautionfloor","x":36.89,"z":30.175,"r":1.571,"solid":false,"s":1.8,"sx":1.8,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":24.65,"z":27.5,"r":0.0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":43.35,"z":32.85,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":59.16,"z":26.01,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":63.24,"z":26.01,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":59.16,"z":31.79,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"specimen","x":63.24,"z":31.79,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"hologram","x":61.2,"z":28.9,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"manifold","x":72.74,"z":28.9,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"reactorcore","x":68.34,"z":36.72,"r":0.8,"solid":true,"s":0.75,"sx":0.75,"sy":0.75,"sz":0.75,"y":0.0},
+  {"k":"console","x":69.87,"z":20.23,"r":-0.785,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cryopod","x":53.125,"z":20.655,"r":0.785,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cryopod","x":53.125,"z":37.145,"r":2.356,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cryopod","x":49.875,"z":25.67,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cryopod","x":49.875,"z":32.13,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"samplerack","x":56.1,"z":40.57,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"samplerack","x":56.95,"z":40.57,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"labbench","x":60.775,"z":40.29,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shelfmetal","x":57.375,"z":17.36,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shiprail","x":61.2,"z":22.61,"r":0,"solid":true,"s":1.3,"sx":1.3,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"shiprail","x":61.2,"z":35.19,"r":0,"solid":true,"s":1.3,"sx":1.3,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":72.76,"z":25.5,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"emerglight","x":72.76,"z":32.3,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"lavapool","x":45.05,"z":3.4,"r":0.0,"solid":false,"s":3.8249999999999997,"sx":3.8249999999999997,"sy":1.0,"sz":3.4,"y":0.03},
+  {"k":"lavapool","x":36.55,"z":3.825,"r":0.0,"solid":false,"s":0.425,"sx":0.425,"sy":1.0,"sz":1.9124999999999999,"y":0.03},
+  {"k":"lavapool","x":54.825,"z":3.4,"r":0.0,"solid":false,"s":1.0625,"sx":1.0625,"sy":1.0,"sz":2.125,"y":0.03},
+  {"k":"lavapool","x":45.05,"z":-4.037,"r":0.0,"solid":false,"s":2.975,"sx":2.975,"sy":1.0,"sz":0.31875,"y":0.03},
+  {"k":"lavapool","x":45.9,"z":11.688,"r":0.0,"solid":false,"s":2.55,"sx":2.55,"sy":1.0,"sz":0.74375,"y":0.03},
+  {"k":"lavapool","x":37.188,"z":-1.275,"r":0.0,"solid":false,"s":0.53125,"sx":0.53125,"sy":1.0,"sz":0.6375,"y":0.03},
+  {"k":"lavapool","x":53.975,"z":-1.912,"r":0.0,"solid":false,"s":0.6375,"sx":0.6375,"sy":1.0,"sz":0.53125,"y":0.03},
+  {"k":"lavapool","x":53.975,"z":8.925,"r":0.0,"solid":false,"s":0.6375,"sx":0.6375,"sy":1.0,"sz":0.6375,"y":0.03},
+  {"k":"lavapool","x":39.525,"z":11.05,"r":0.0,"solid":false,"s":0.6375,"sx":0.6375,"sy":1.0,"sz":0.425,"y":0.03},
+  {"k":"rock","x":37.4,"z":-5.44,"r":0.4,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"rock","x":51.85,"z":-6.29,"r":1.1,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"rock","x":58.31,"z":4.25,"r":2,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"rock","x":52.7,"z":14.45,"r":0.2,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"rock","x":39.95,"z":15.3,"r":2.6,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"rock","x":34.85,"z":5.95,"r":1.4,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"meteor","x":44.2,"z":18.275,"r":0.6,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"meteor","x":56.525,"z":13.175,"r":2.2,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"terminal2","x":30.77,"z":15.81,"r":2.35,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dish","x":-51.0,"z":-28.05,"r":0.4,"solid":true,"s":0.8,"sx":0.8,"sy":0.8,"sz":0.8,"y":0.0},
+  {"k":"terminal2","x":-48.79,"z":-27.54,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dish","x":-6.8,"z":-44.2,"r":0.4,"solid":true,"s":0.8,"sx":0.8,"sy":0.8,"sz":0.8,"y":0.0},
+  {"k":"terminal2","x":-4.59,"z":-43.69,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dish","x":42.5,"z":22.1,"r":0.4,"solid":true,"s":0.8,"sx":0.8,"sy":0.8,"sz":0.8,"y":0.0},
+  {"k":"terminal2","x":44.71,"z":22.61,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"dish","x":-44.2,"z":48.45,"r":0.4,"solid":true,"s":0.8,"sx":0.8,"sy":0.8,"sz":0.8,"y":0.0},
+  {"k":"terminal2","x":-41.99,"z":48.96,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"hatch","x":-56.1,"z":49.47,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-35.7,"z":-26.01,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-1.7,"z":-26.01,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":6.29,"z":-22.1,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-52.19,"z":11.9,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-52.19,"z":30.6,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-52.19,"z":40.8,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-18.19,"z":5.1,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-18.19,"z":28.9,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-34.0,"z":48.11,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-10.2,"z":48.11,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":33.66,"z":14.45,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":25.5,"z":-6.29,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"rock","x":-71.4,"z":-45.9,"r":0.3,"solid":true,"s":2.4,"sx":2.4,"sy":2.4,"sz":2.4,"y":0.0},
+  {"k":"rock","x":-59.5,"z":-57.8,"r":1,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
+  {"k":"rock","x":-42.5,"z":-59.5,"r":2,"solid":true,"s":2.6,"sx":2.6,"sy":2.6,"sz":2.6,"y":0.0},
+  {"k":"rock","x":-3.4,"z":-60.35,"r":0.5,"solid":true,"s":2.2,"sx":2.2,"sy":2.2,"sz":2.2,"y":0.0},
+  {"k":"rock","x":25.5,"z":-58.65,"r":2.2,"solid":true,"s":2.8,"sx":2.8,"sy":2.8,"sz":2.8,"y":0.0},
+  {"k":"rock","x":47.6,"z":-56.1,"r":0.8,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
+  {"k":"rock","x":71.4,"z":-57.8,"r":1.7,"solid":true,"s":2.6,"sx":2.6,"sy":2.6,"sz":2.6,"y":0.0},
+  {"k":"rock","x":79.05,"z":-25.5,"r":2.5,"solid":true,"s":1.8,"sx":1.8,"sy":1.8,"sz":1.8,"y":0.0},
+  {"k":"rock","x":78.625,"z":1.7,"r":0.4,"solid":true,"s":1.6,"sx":1.6,"sy":1.6,"sz":1.6,"y":0.0},
+  {"k":"rock","x":78.2,"z":25.5,"r":1.2,"solid":true,"s":2.2,"sx":2.2,"sy":2.2,"sz":2.2,"y":0.0},
+  {"k":"rock","x":76.5,"z":46.75,"r":2,"solid":true,"s":2.4,"sx":2.4,"sy":2.4,"sz":2.4,"y":0.0},
+  {"k":"rock","x":52.7,"z":46.75,"r":0.9,"solid":true,"s":1.8,"sx":1.8,"sy":1.8,"sz":1.8,"y":0.0},
+  {"k":"rock","x":8.5,"z":48.025,"r":1.6,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
+  {"k":"rock","x":-25.5,"z":48.875,"r":2.4,"solid":true,"s":1.9,"sx":1.9,"sy":1.9,"sz":1.9,"y":0.0},
+  {"k":"rock","x":-79.475,"z":25.5,"r":0.2,"solid":true,"s":1.4,"sx":1.4,"sy":1.4,"sz":1.4,"y":0.0},
+  {"k":"rock","x":-79.05,"z":-25.5,"r":1.4,"solid":true,"s":1.6,"sx":1.6,"sy":1.6,"sz":1.6,"y":0.0},
+  {"k":"rock","x":-32.3,"z":-3.4,"r":0.7,"solid":true,"s":1.4,"sx":1.4,"sy":1.4,"sz":1.4,"y":0.0},
+  {"k":"rock","x":-8.5,"z":0.0,"r":2.1,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
+  {"k":"rock","x":20.4,"z":0.0,"r":1.3,"solid":true,"s":1.5,"sx":1.5,"sy":1.5,"sz":1.5,"y":0.0},
+  {"k":"rock","x":-48.45,"z":34.0,"r":0.5,"solid":true,"s":1.4,"sx":1.4,"sy":1.4,"sz":1.4,"y":0.0},
+  {"k":"rock","x":-9.35,"z":32.3,"r":1.9,"solid":true,"s":1.5,"sx":1.5,"sy":1.5,"sz":1.5,"y":0.0},
+  {"k":"rock","x":23.8,"z":42.5,"r":0.3,"solid":true,"s":1.6,"sx":1.6,"sy":1.6,"sz":1.6,"y":0.0},
+  {"k":"rock","x":-79.05,"z":-6.8,"r":2.8,"solid":true,"s":1.2,"sx":1.2,"sy":1.2,"sz":1.2,"y":0.0},
+  {"k":"rock","x":40.8,"z":39.1,"r":1.1,"solid":true,"s":2.2,"sx":2.2,"sy":2.2,"sz":2.2,"y":0.0},
+  {"k":"rock","x":-25.5,"z":-44.2,"r":0.6,"solid":true,"s":2.2,"sx":2.2,"sy":2.2,"sz":2.2,"y":0.0},
+  {"k":"rock","x":29.75,"z":-49.3,"r":1.5,"solid":true,"s":1.8,"sx":1.8,"sy":1.8,"sz":1.8,"y":0.0},
+  {"k":"rock","x":-56.1,"z":-44.2,"r":2.2,"solid":true,"s":1.7,"sx":1.7,"sy":1.7,"sz":1.7,"y":0.0},
+  {"k":"rock","x":62.9,"z":44.2,"r":0.8,"solid":true,"s":1.6,"sx":1.6,"sy":1.6,"sz":1.6,"y":0.0},
+  {"k":"rock","x":74.8,"z":-44.2,"r":0.2,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
+  {"k":"rock","x":-17.0,"z":-34.0,"r":1.9,"solid":true,"s":1.5,"sx":1.5,"sy":1.5,"sz":1.5,"y":0.0},
+  {"k":"snowpile","x":-44.2,"z":-54.4,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-25.5,"z":-60.35,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":17.0,"z":-49.3,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":39.1,"z":-44.2,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":66.3,"z":-42.5,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-74.8,"z":-34.0,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-73.1,"z":45.9,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":76.5,"z":17.0,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":34.0,"z":39.1,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-8.5,"z":28.9,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-47.6,"z":6.8,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":22.1,"z":-3.4,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-39.95,"z":-28.9,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":56.1,"z":-47.6,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":3.4,"z":45.9,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"snowpile","x":-66.3,"z":45.9,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"solarpanel","x":-52.7,"z":-39.1,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"solarpanel","x":-49.3,"z":-39.1,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"solarpanel","x":-45.9,"z":-39.1,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"solarpanel","x":34.0,"z":-39.95,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"solarpanel","x":37.4,"z":-39.95,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"solarpanel","x":40.8,"z":-39.95,"r":3.142,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"radar","x":22.1,"z":-40.8,"r":0.6,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fence","x":-76.5,"z":-25.5,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fence","x":-76.5,"z":-20.4,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"satellite","x":77.01,"z":-1.7,"r":2.4,"solid":true,"s":0.9,"sx":0.9,"sy":0.9,"sz":0.9,"y":0.0},
+  {"k":"barrel","x":-27.2,"z":0.85,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"barrel","x":-27.88,"z":1.53,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"fueltank","x":5.1,"z":1.7,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipes","x":-37.74,"z":19.125,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"generator","x":-28.05,"z":20.06,"r":-1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":17.51,"z":-28.9,"r":0.0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"cargobox","x":18.36,"z":-29.92,"r":0.5,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-51.0,"z":-23.29,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-40.8,"z":-23.29,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":34.0,"z":-34.34,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":51.0,"z":-34.34,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-5.1,"z":-15.64,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-73.1,"z":2.21,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-39.1,"z":2.21,"r":3.142,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-34.0,"z":42.84,"r":0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":8.5,"z":44.54,"r":0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"pipewall","x":-71.4,"z":39.44,"r":0,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallvent","x":-63.24,"z":-10.2,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallvent","x":-42.84,"z":10.2,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallvent","x":19.04,"z":34.0,"r":1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallvent","x":-13.94,"z":-13.6,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"wallvent","x":15.64,"z":-30.6,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0}
+ ],
+ "vents":[
+  {"id":"v_ele","name":"Electrical","x":-41.65,"z":-7.14,"links":["v_seg","v_o2"]},
+  {"id":"v_seg","name":"Security","x":-73.525,"z":-7.31,"links":["v_ele","v_o2"]},
+  {"id":"v_o2","name":"O2","x":-67.66,"z":8.925,"links":["v_ele","v_seg"]},
+  {"id":"v_com","name":"Communications","x":-39.61,"z":13.09,"links":["v_ofi","v_alm"]},
+  {"id":"v_alm","name":"Storage","x":2.72,"z":-7.99,"links":["v_com","v_ofi"]},
+  {"id":"v_ofi","name":"Office","x":-14.11,"z":17.51,"links":["v_com","v_alm"]},
+  {"id":"v_adm","name":"Admin","x":14.96,"z":41.99,"links":["v_adm2"]},
+  {"id":"v_adm2","name":"Exterior de Admin","x":-7.31,"z":44.88,"links":["v_adm"]},
+  {"id":"v_lab","name":"Laboratory","x":51.51,"z":-14.79,"links":["v_lav"]},
+  {"id":"v_lav","name":"Lago de lava","x":40.8,"z":-8.67,"links":["v_lab"]},
+  {"id":"v_eln","name":"Exterior de Electrical","x":-40.8,"z":-25.5,"links":["v_labo"]},
+  {"id":"v_labo","name":"Exterior del laboratorio","x":10.2,"z":-25.925,"links":["v_eln"]}
+ ],
+ "tasks":[
+  {"id":"po_t01","type":"chartcourse","name":"Trazar la ruta","x":-15.81,"z":-54.33,"kind":"short","chain":null,"step":0},
+  {"id":"po_t02","type":"insertkeys","name":"Insertar las llaves","x":-21.59,"z":-54.4,"kind":"common","chain":null,"step":0},
+  {"id":"po_t03","type":"fuelpour","name":"Cargar el motor de la nave","x":-33.49,"z":-34.51,"kind":"long","chain":"fuel","step":1},
+  {"id":"po_t04","type":"wires","name":"Arreglar cables","x":-60.35,"z":-21.66,"kind":"short","chain":null,"step":0},
+  {"id":"po_t05","type":"uploaddata","name":"Descargar los datos","x":-42.16,"z":-21.29,"kind":"long","chain":"datE","step":0},
+  {"id":"po_t06","type":"power","name":"Vigilar el árbol","x":-72.25,"z":11.22,"kind":"short","chain":null,"step":0},
+  {"id":"po_t07","type":"wires","name":"Arreglar cables","x":-65.875,"z":3.84,"kind":"short","chain":null,"step":0},
+  {"id":"po_t08","type":"fillcan","name":"Llenar los bidones","x":-69.105,"z":13.94,"kind":"short","chain":null,"step":0},
+  {"id":"po_t09","type":"garbagepull","name":"Vaciar la basura","x":-75.82,"z":13.92,"kind":"short","chain":null,"step":0},
+  {"id":"po_t10","type":"fuelfill","name":"Llenar el botellón de agua","x":-67.49,"z":37.06,"kind":"long","chain":"agua","step":0},
+  {"id":"po_t11","type":"steering","name":"Abrir la válvula 1","x":-70.975,"z":31.025,"kind":"long","chain":"compuertas","step":0},
+  {"id":"po_t12","type":"steering","name":"Abrir la válvula 2","x":-70.975,"z":34.85,"kind":"long","chain":"compuertas","step":1},
+  {"id":"po_t13","type":"uploaddata","name":"Subir los datos","x":-38.59,"z":4.505,"kind":"long","chain":"datE","step":1},
+  {"id":"po_t14","type":"uploaddata","name":"Subir los datos","x":-38.59,"z":4.505,"kind":"long","chain":"datW","step":1},
+  {"id":"po_t15","type":"uploaddata","name":"Subir los datos","x":-38.59,"z":4.505,"kind":"long","chain":"datS","step":1},
+  {"id":"po_t16","type":"uploaddata","name":"Subir los datos","x":-38.59,"z":4.505,"kind":"long","chain":"datO","step":1},
+  {"id":"po_t17","type":"uploaddata","name":"Subir los datos","x":-38.59,"z":4.505,"kind":"long","chain":"datA","step":1},
+  {"id":"po_t18","type":"divertpower","name":"Reiniciar el wifi","x":-30.25,"z":14.28,"kind":"short","chain":null,"step":0},
+  {"id":"po_t19","type":"wires","name":"Arreglar cables","x":-41.21,"z":14.875,"kind":"short","chain":null,"step":0},
+  {"id":"po_t20","type":"asteroids","name":"Despejar asteroides","x":-31.96,"z":38.42,"kind":"short","chain":null,"step":0},
+  {"id":"po_t21","type":"uploaddata","name":"Descargar los datos","x":-40.84,"z":28.22,"kind":"long","chain":"datW","step":0},
+  {"id":"po_t22","type":"fuelfill","name":"Llenar el bidón","x":-1.275,"z":-10.965,"kind":"long","chain":"fuel","step":0},
+  {"id":"po_t23","type":"uploaddata","name":"Descargar los datos","x":-12.325,"z":6.76,"kind":"long","chain":"datO","step":0},
+  {"id":"po_t24","type":"wires","name":"Arreglar cables","x":11.475,"z":6.39,"kind":"short","chain":null,"step":0},
+  {"id":"po_t25","type":"swipecard","name":"Pasar la tarjeta","x":22.1,"z":6.89,"kind":"common","chain":null,"step":0},
+  {"id":"po_t26","type":"transfer","name":"Escanear el pase de abordar","x":25.5,"z":6.87,"kind":"common","chain":null,"step":0},
+  {"id":"po_t27","type":"transfer","name":"Cambiar el botellón de agua","x":-16.915,"z":19.21,"kind":"long","chain":"agua","step":1},
+  {"id":"po_t28","type":"uploaddata","name":"Descargar los datos","x":2.55,"z":42.43,"kind":"long","chain":"datA","step":0},
+  {"id":"po_t29","type":"machine","name":"Reparar el taladro","x":22.78,"z":-28.56,"kind":"short","chain":null,"step":0},
+  {"id":"po_t30","type":"align","name":"Alinear el telescopio","x":39.1,"z":-28.22,"kind":"short","chain":null,"step":0},
+  {"id":"po_t31","type":"switches","name":"Reiniciar el nodo meteorológico","x":28.985,"z":-32.045,"kind":"long","chain":"nodoA","step":1},
+  {"id":"po_t32","type":"switches","name":"Reiniciar el nodo meteorológico","x":28.985,"z":-32.045,"kind":"long","chain":"nodoB","step":1},
+  {"id":"po_t33","type":"switches","name":"Reiniciar el nodo meteorológico","x":28.985,"z":-32.045,"kind":"long","chain":"nodoC","step":1},
+  {"id":"po_t34","type":"switches","name":"Reiniciar el nodo meteorológico","x":28.985,"z":-32.045,"kind":"long","chain":"nodoD","step":1},
+  {"id":"po_t35","type":"recordtemp","name":"Registrar la temperatura","x":49.3,"z":-32.3,"kind":"short","chain":null,"step":0},
+  {"id":"po_t36","type":"inspectsample","name":"Inspeccionar la muestra","x":56.525,"z":-13.86,"kind":"short","chain":null,"step":0},
+  {"id":"po_t37","type":"wires","name":"Arreglar cables","x":61.625,"z":-32.71,"kind":"short","chain":null,"step":0},
+  {"id":"po_t38","type":"medscan","name":"Escaneo médico","x":71.4,"z":-26.35,"kind":"short","chain":null,"step":0},
+  {"id":"po_t39","type":"wires","name":"Arreglar cables","x":65.89,"z":-21.25,"kind":"short","chain":null,"step":0},
+  {"id":"po_t40","type":"sort","name":"Guardar los artefactos","x":61.2,"z":24.31,"kind":"short","chain":null,"step":0},
+  {"id":"po_t41","type":"manifolds","name":"Desbloquear los colectores","x":71.44,"z":28.9,"kind":"short","chain":null,"step":0},
+  {"id":"po_t42","type":"startreactor","name":"Encender el reactor","x":65.79,"z":35.02,"kind":"short","chain":null,"step":0},
+  {"id":"po_t43","type":"uploaddata","name":"Descargar los datos","x":69.02,"z":21.08,"kind":"long","chain":"datS","step":0},
+  {"id":"po_t44","type":"recordtemp","name":"Medir la temperatura de la lava","x":29.58,"z":17.0,"kind":"short","chain":null,"step":0},
+  {"id":"po_t45","type":"calibrate","name":"Arreglar el nodo meteorológico CA1","x":-47.515,"z":-27.54,"kind":"long","chain":"nodoA","step":0},
+  {"id":"po_t46","type":"calibrate","name":"Arreglar el nodo meteorológico TB2","x":-3.315,"z":-43.69,"kind":"long","chain":"nodoB","step":0},
+  {"id":"po_t47","type":"calibrate","name":"Arreglar el nodo meteorológico IRO4","x":45.985,"z":22.61,"kind":"long","chain":"nodoC","step":0},
+  {"id":"po_t48","type":"calibrate","name":"Arreglar el nodo meteorológico PD3","x":-40.715,"z":48.96,"kind":"long","chain":"nodoD","step":0},
+  {"id":"po_t49","type":"switches","name":"Abrir el desagüe","x":-56.1,"z":47.43,"kind":"long","chain":"compuertas","step":2}
+ ],
+ "cams":[
+  {"name":"Cámara noroeste","x":-28.9,"z":-21.675,"yaw":-0.96,"yaw2":0.96},
+  {"name":"Cámara noreste","x":7.65,"z":-22.525,"yaw":-1.548,"yaw2":0.372},
+  {"name":"Cámara central","x":-20.4,"z":0.0,"yaw":-0.098,"yaw2":1.822},
+  {"name":"Cámara este","x":32.3,"z":20.4,"yaw":-0.175,"yaw2":1.745},
+  {"name":"Cámara sur","x":-10.2,"z":25.5,"yaw":-1.34,"yaw2":0.579},
+  {"name":"Cámara suroeste","x":-51.85,"z":23.8,"yaw":-1.383,"yaw2":0.537}
+ ],
+ "doors":[
+  {"x1":-37.4,"z1":-14.45,"x2":-37.4,"z2":-9.35,"group":"Electrical"},
+  {"x1":-58.65,"z1":-0.85,"x2":-54.4,"z2":-0.85,"group":"Electrical"},
+  {"x1":-62.9,"z1":6.8,"x2":-62.9,"z2":11.05,"group":"O2"},
+  {"x1":-38.25,"z1":17.85,"x2":-34.0,"z2":17.85,"group":"Communications"},
+  {"x1":-36.55,"z1":24.65,"x2":-32.3,"z2":24.65,"group":"Weapons"},
+  {"x1":-25.5,"z1":30.6,"x2":-25.5,"z2":34.85,"group":"Weapons"},
+  {"x1":-2.55,"z1":-4.25,"x2":1.7,"z2":-4.25,"group":"Storage"},
+  {"x1":-13.6,"z1":-11.9,"x2":-13.6,"z2":-7.65,"group":"Storage"},
+  {"x1":-18.7,"z1":10.2,"x2":-18.7,"z2":15.3,"group":"Office"},
+  {"x1":-2.55,"z1":5.1,"x2":2.55,"z2":5.1,"group":"Office"},
+  {"x1":28.9,"z1":7.65,"x2":28.9,"z2":11.9,"group":"Office"},
+  {"x1":15.3,"z1":-25.5,"x2":15.3,"z2":-20.4,"group":"Laboratory"}
+ ],
+ "spawn":{"x":5.1,"z":12.75}, "spawnR":3.8, "emergency":{"x":5.1,"z":12.75}, "lights":{"x":-53.04,"z":-22.355}, "camStation":{"x":-69.7,"z":-17.468}, "comms":{"x":-32.64,"z":5.44},
+ "repair":[], "o2":[], "reactor":[{"x":-64.6,"z":-30.09,"name":"Estabilizador izquierdo"},{"x":11.05,"z":-36.04,"name":"Estabilizador derecho"}], "reactorName":"Estabilizadores sísmicos"
+};
+function mapPolus(){ return buildCustomMap(POLUS_MAP_DATA, 'polus'); }
 
 /* ---------------------------------------------------------------
    DECORACION DE LOS MAPAS (utileria extra sobre la estructura)
@@ -5394,25 +6075,6 @@ function decoPlaza(M){
   ]);
   M.bgColor=[150,140,130];
 }
-function decoSkeld(M){
-  M.signStyle={bg:'#1c2a3a', color:'#9fe0ff'};
-  deco(M, [
-    ['spacewin', -7.5, -13.9, FN], ['spacewin', 7.5, -13.9, FN], ['vending', 11.5, 3, FW, 0.8, 1.0], ['cooler', -11.5, 3.5, FE, 0.45, 0.45],
-    ['console', 6, -41.3, FN, 1.6, 0.7], ['crates', -6.2, -30, 0, 2.1, 1.1],
-    ['tank', 29.5, -24.3, 0, 2.6, 1.4], ['pipes', 25, -25.8, FN],
-    ['spacewin', 46.9, -11, FW], ['console', 41, -5, FS, 1.6, 0.7],
-    ['console', 42.3, 7.3, FS, 1.6, 0.7], ['pipes', 37, 18.9, FS],
-    ['servers', 26.3, 29, FW, 0.9, 2.0], ['console', 22.5, 31.3, FS, 1.6, 0.7],
-    ['crates', 6.5, 23.5, 0, 2.1, 1.1], ['tank', 8.2, 17, FE, 1.4, 2.6],
-    ['console', 26.5, 2.5, FW, 0.7, 1.6], ['cork', 22, -3.9, FN],
-    ['generator', -24.4, 13.8, FS, 1.6, 1.0], ['pipes', -29, 14.85, FS], ['servers', -35.3, 9.5, FE, 0.9, 2.0],
-    ['medcab', -25, -21.85, FN], ['ivstand', -24.5, -16.5], ['cabinet', -16.4, -13, FW, 0.62, 0.52],
-    ['pipes', -48, -23.85, FN], ['pipes', -48, 23.85, FS], ['tank', -53.5, -12, 0, 2.6, 1.4], ['tank', -53.5, 12, 0, 2.6, 1.4],
-    ['pipes', -67, -9.85, FN], ['pipes', -67, 9.85, FS], ['console', -61, 8.6, FS, 1.6, 0.7],
-    ['servers', -18.6, 1, FW, 0.9, 2.0], ['extinguisher', -12.4, -10, FE]
-  ]);
-  M.bgColor=[4,6,12];
-}
 function decoMira(M){
   M.signStyle={bg:'#243555', color:'#ffffff'};
   deco(M, [
@@ -5428,25 +6090,12 @@ function decoMira(M){
   ]);
   M.bgColor=[80,95,120];
 }
-function decoPolus(M){
-  M.signStyle={bg:'#2a3444', color:'#dff2ff'};
-  deco(M, [
-    ['rock', -40, -22], ['rock', 30, -42], ['rock', 72, 12], ['rock', -60, 42], ['rock', 12, 30],
-    ['dish', -22, -40, FN, 1.2, 1.2], ['antenna', 64, -38, 0, 1.4, 0.4], ['dish', 26, -21, FS, 1.2, 1.2],
-    ['cabinet', -29.4, 19.5, FE, 0.62, 0.52], ['printer', -9, 20.8, FS, 0.75, 0.6],
-    ['generator', -50, -20.4, FN, 1.6, 1.0], ['pipes', -56, -21.85, FN],
-    ['labbench', -55, 21.3, FS, 2.3, 0.85], ['crates', 33, 17.3, 0, 2.1, 1.1],
-    ['servers', 33.3, -9, FW, 0.9, 2.0], ['console', 60.5, -3, FW, 0.7, 1.6], ['tank', 57, 20.5, 0, 2.6, 1.4],
-    ['labbench', 50, 40.8, FS, 2.3, 0.85], ['crates', -12, 47, 0, 2.1, 1.1], ['extinguisher', 13.8, 10, FW]
-  ]);
-  M.bgColor=[96,112,132];
-}
 
 const MAP_DEFS = [
-  { id:'skeld',    name:'THE SKELD',        desc:'Nave clasica',            build:mapSkeld },
-  { id:'mira',     name:'MIRA HQ',          desc:'Sede aerea',              build:mapMira },
-  { id:'polus',    name:'POLUS',            desc:'Base polar - exteriores', build:mapPolus },
-  { id:'plaza',    name:'PLAZA LAGOS',      desc:'Samborondon, Ecuador',    build:mapPlazaLagos },
+  { id:'skeld',    name:'THE SKELD',        desc:'Nave clásica',            build:mapSkeld },
+  { id:'mira',     name:'MIRA HQ',          desc:'Sede aérea',              build:mapMira },
+  { id:'polus',    name:'POLUS',            desc:'Base polar · nieve y lava', build:mapPolus },
+  { id:'plaza',    name:'PLAZA LAGOS',      desc:'Samborondón, Ecuador',    build:mapPlazaLagos },
   { id:'torremar', name:'COLEGIO TORREMAR', desc:'Campus escolar',          build:mapTorremar },
   { id:'custom',   name:'MAPA PERSONALIZADO', desc:'Creado con el editor',  build:()=>buildCustomMap(gameState.customMap), hidden:true }
 ];
@@ -5483,13 +6132,13 @@ const KILL_DIST = { corta:1.4, media:2.3, larga:3.3 };
 
 const SETTINGS_SCHEMA = [
  { g:'Jugadores', items:[
-   {k:'minPlayers', l:'Minimo de jugadores', t:'num', min:1, max:15},
-   {k:'maxPlayers', l:'Maximo de jugadores', t:'num', min:2, max:15},
+   {k:'minPlayers', l:'Mínimo de jugadores', t:'num', min:1, max:15},
+   {k:'maxPlayers', l:'Máximo de jugadores', t:'num', min:2, max:15},
    {k:'bots',       l:'Bots de relleno',     t:'num', min:0, max:10}
  ]},
  { g:'Impostores', items:[
-   {k:'impostors',     l:'Numero de Impostores', t:'num', min:1, max:3},
-   {k:'autoImpostors', l:'Seleccion automatica', t:'bool'}
+   {k:'impostors',     l:'Número de Impostores', t:'num', min:1, max:3},
+   {k:'autoImpostors', l:'Selección automática', t:'bool'}
  ]},
  { g:'Movimiento', items:[
    {k:'speed',     l:'Velocidad', t:'rng', min:0.5, max:3, step:0.05},
@@ -5505,13 +6154,13 @@ const SETTINGS_SCHEMA = [
  ]},
  { g:'Reuniones', items:[
    {k:'emergencies',       l:'Reuniones por jugador', t:'num', min:0, max:9},
-   {k:'emergencyCooldown', l:'Enfriamiento boton (s)', t:'rng', min:0, max:60, step:1}
+   {k:'emergencyCooldown', l:'Enfriamiento del botón (s)', t:'rng', min:0, max:60, step:1}
  ]},
- { g:'Votacion', items:[
-   {k:'discussTime',   l:'Tiempo de discusion (s)', t:'rng', min:0, max:120, step:5},
-   {k:'voteTime',      l:'Tiempo de votacion (s)',  t:'rng', min:15, max:300, step:5},
-   {k:'confirmEjects', l:'Confirmar expulsion', t:'bool'},
-   {k:'anonVotes',     l:'Votos anonimos', t:'bool'},
+ { g:'Votación', items:[
+   {k:'discussTime',   l:'Tiempo de discusión (s)', t:'rng', min:0, max:120, step:5},
+   {k:'voteTime',      l:'Tiempo de votación (s)',  t:'rng', min:15, max:300, step:5},
+   {k:'confirmEjects', l:'Confirmar expulsión', t:'bool'},
+   {k:'anonVotes',     l:'Votos anónimos', t:'bool'},
    {k:'allowSkip',     l:'Permitir saltar voto', t:'bool'}
  ]},
  { g:'Tareas', items:[
@@ -5521,8 +6170,8 @@ const SETTINGS_SCHEMA = [
  ]},
  { g:'Sabotajes', items:[
    {k:'sabotagesOn',  l:'Sabotajes activos', t:'bool'},
-   {k:'criticalTime', l:'Duracion sabotaje critico (s)', t:'rng', min:20, max:90, step:5},
-   {k:'doorTime',     l:'Duracion puertas cerradas (s)', t:'rng', min:5, max:30, step:1}
+   {k:'criticalTime', l:'Duración del sabotaje crítico (s)', t:'rng', min:20, max:90, step:5},
+   {k:'doorTime',     l:'Duración de puertas cerradas (s)', t:'rng', min:5, max:30, step:1}
  ]},
 ];
 
@@ -6590,7 +7239,7 @@ machine(api){
     draw(ctx){
       txt(ctx,'Etapa '+(stage+1)+' de 3',TCV_W/2,28,16,'#ffcc48');
       if(stage===0){
-        txt(ctx,'Gira la valvula dos vueltas',TCV_W/2,58,17,'#e8eef8');
+        txt(ctx,'Gira la válvula dos vueltas',TCV_W/2,58,17,'#e8eef8');
         ctx.save(); ctx.translate(310,190); ctx.rotate(ang);
         ctx.strokeStyle='#8d95a3'; ctx.lineWidth=16;
         ctx.beginPath(); ctx.arc(0,0,72,0,TAU); ctx.stroke();
@@ -7643,8 +8292,8 @@ function mapLobby(){
   return M.finalize();
 }
 const CAM_STATION = {
-  torremar:{x:14.5,z:28.2}, plaza:{x:28,z:-36}, skeld:{x:-22,z:-2},
-  mira:{x:36,z:-11}, polus:{x:-14,z:10}, custom:null
+  torremar:{x:14.5,z:28.2}, plaza:{x:28,z:-36}, skeld:{x:-44,z:12.2},
+  mira:{x:36,z:-11}, polus:{x:-69.7,z:-17.468}, custom:null
 };
 
 /* =====================================================================
@@ -7693,7 +8342,7 @@ const NetMgr = {
     });
     Net.peer.on('error', e=>{
       $('netErr').textContent = (e.type==='unavailable-id')
-        ? 'Ese codigo ya esta en uso, intenta de nuevo.' : 'Error de red: '+e.type;
+        ? 'Ese código ya está en uso, intenta de nuevo.' : 'Error de red: '+e.type;
       Net.isHost=false;
     });
   },
@@ -7769,7 +8418,7 @@ const Host = {
   map2id:{},
   onJoin(conn, info){
     const S=gameState.settings;
-    if(allPlayers().length >= S.maxPlayers){ conn.send({t:'deny', r:'La sala esta llena.'}); return; }
+    if(allPlayers().length >= S.maxPlayers){ conn.send({t:'deny', r:'La sala está llena.'}); return; }
     if(gameState.phase!=='lobby'){ conn.send({t:'deny', r:'La partida ya comenzo.'}); return; }
     const id='p'+(this.nextId++);
     this.map2id[conn.peer]=id;
@@ -7784,7 +8433,7 @@ const Host = {
     conn.send({t:'welcome', id, code:Net.code, settings:gameState.settings, map:gameState.map});
     if(gameState.customMap) conn.send({t:'cmap', data:gameState.customMap});
     this.pushLobby();
-    this.sys(p.name+' se unio a la sala.');
+    this.sys(p.name+' se unió a la sala.');
   },
   onLeave(peerId){
     const id=this.map2id[peerId]; if(!id) return;
@@ -7792,9 +8441,29 @@ const Host = {
     delete Net.conns[peerId]; delete this.map2id[peerId];
     if(!p) return;
     p.connected=false; p.alive=false;
-    this.sys(p.name+' se desconecto.');
+    this.sys(p.name+' se desconectó.');
     if(gameState.phase==='lobby'){ delete gameState.players[id]; this.pushLobby(); }
-    else { NetMgr.bcast({t:'ev',e:'left',id}); Game.checkWin(); }
+    else {
+      /* las tareas que le faltaban dejan de contar: si no, la barra nunca llega al 100% */
+      const list=gameState.tasks && gameState.tasks[id];
+      if(p.team==='crew' && list){
+        const left=list.reduce((a,t)=>a+Math.max(0,t.steps-t.step),0);
+        for(const t of list){ t.step=t.steps; t.done=true; }
+        if(left>0){
+          gameState.totalTasks=Math.max(gameState.doneTasks, gameState.totalTasks-left);
+          gameState.taskProgress=gameState.totalTasks? gameState.doneTasks/gameState.totalTasks : 0;
+          const tb={t:'ev',e:'taskbar',d:gameState.doneTasks,n:gameState.totalTasks};
+          NetMgr.bcast(tb); Game.clientEvent(tb);
+        }
+      }
+      /* en plena votacion su voto se descarta; si ya votaron todos los que quedan, se cierra */
+      if(gameState.phase==='meeting' && gameState.meeting){
+        delete gameState.votes[id];
+        const al=alivePlayers();
+        if(gameState.meeting.phase==='vote' && al.length && al.every(q=>gameState.votes[q.id]!==undefined)) Game.endVote();
+      }
+      NetMgr.bcast({t:'ev',e:'left',id}); Game.checkWin();
+    }
   },
   sys(m){ NetMgr.bcast({t:'sys',m}); UI.sysMsg(m); },
   pushLobby(){
@@ -7864,7 +8533,7 @@ const Guest = {
         $('netErr').textContent='';
         UI.enterLobby(d.code);
         break;
-      case 'deny': UI.fatal(d.r||'Conexion rechazada.'); break;
+      case 'deny': UI.fatal(d.r||'Conexión rechazada.'); break;
       case 'lobby':
         gameState.settings=d.settings; gameState.map=d.map;
         {
@@ -7983,8 +8652,9 @@ const Game = {
     gameState.guardiansLeft = S.ron_guardian ? clamp(S.rn_guardian|0,1,5) : 0;
     /* tareas */
     gameState.tasks={};
+    const commonPick=shuffle(this.M.taskSpots.filter(s=>!s.chain && s.kind==='common')).slice(0,S.commonTasks);
     for(const p of ps){
-      gameState.tasks[p.id] = (p.team==='crew') ? this.makeTasks() : this.makeTasks(true);
+      gameState.tasks[p.id] = (p.team==='crew') ? this.makeTasks(false, commonPick) : this.makeTasks(true, commonPick);
       if(p.team==='crew') gameState.totalTasks += gameState.tasks[p.id].reduce((a,t)=>a+t.steps,0);
     }
     gameState.phase='playing';
@@ -8002,7 +8672,7 @@ const Game = {
     }
     Audio2.meeting();
   },
-  makeTasks(fake){
+  makeTasks(fake, commonPick){
     const S=gameState.settings, M=this.M;
     const spots=M.taskSpots;
     const chains={};
@@ -8014,7 +8684,8 @@ const Game = {
     const longs   = Object.keys(chains);
     const out=[];
     const take=(arr,n)=>shuffle(arr.slice()).slice(0,n);
-    for(const s of take(commons, S.commonTasks))
+    /* las comunes son las mismas para todos en la partida (como en Among Us): asi se pueden comprobar */
+    for(const s of (commonPick || take(commons, S.commonTasks)))
       out.push({tid:s.id,name:s.name,type:s.type,kind:'common',room:s.room,steps:1,step:0,spots:[s.id],done:false});
     for(const s of take(shorts, S.shortTasks))
       out.push({tid:s.id,name:s.name,type:s.type,kind:'short',room:s.room,steps:1,step:0,spots:[s.id],done:false});
@@ -8455,7 +9126,8 @@ const Game = {
     gameState.bodies=[];
     gameState.lightsOut=false;
     for(const q of allPlayers()){ q.shiftAs=null; q.shiftUntil=0; q.vanishUntil=0; q.shieldUntil=0; q.emote=null; }
-    if(gameState.sabotage && gameState.sabotage.type!=='critical') gameState.sabotage=null;
+    gameState.sabotage=null;
+    for(const r of (this.M.reactorPts||[])){ r.armedAt=0; r.by=null; }
     for(const d of this.M.doors){ d.closed=false; d.obj.visible=false; }
     for(const p of allPlayers()){
       p.inVent=null; p._voteAt=0; p._goal=null; p._wait=0;
@@ -8514,7 +9186,7 @@ const Game = {
     const crew=ps.filter(p=>p.alive&&p.team==='crew').length;
     let winner=null, reason='';
     if(imp===0){ winner='crew'; reason='Todos los Impostores fueron expulsados.'; }
-    else if(imp>=crew){ winner='imp'; reason='Los Impostores alcanzaron la mayoria.'; }
+    else if(imp>=crew){ winner='imp'; reason='Los Impostores alcanzaron la mayoría.'; }
     else if(gameState.totalTasks>0 && gameState.doneTasks>=gameState.totalTasks){ winner='crew'; reason='Los Tripulantes completaron todas las tareas.'; }
     if(!winner) return false;
     this.hostEnd(winner,reason);
@@ -8558,6 +9230,9 @@ const Game = {
       UI.renderTasks();
     }
     else if(e==='meeting'){ gameState.bodies=[]; gameState.lightsOut=false;
+      gameState.sabotage=null; UI.alert(null);
+      for(const dd of this.M.doors){ dd.closed=false; dd.obj.visible=false; }
+      gameState.doors={};
       for(const q of Object.values(gameState.players)){ q.emote=null; q.shiftAs=null; q.vanishUntil=0; q.shieldUntil=0; }
       Local.noise=[]; Local.track=null; RoleUI.close();
       EmoteWheel.hide(); LocalEmote.stop(false); UI.openMeeting(d); }
@@ -8647,7 +9322,7 @@ const Game = {
       if(r){ r.armedAt=performance.now()/1000; r.by=d.who; }
       Audio2.beep();
       const mp2=me();
-      if(mp2 && d.who!==Net.myId && !mp2.ghost) toast('¡El otro punto del reactor está activo! ('+REACTOR_WINDOW+' s)','#ffcc48',1400);
+      if(mp2 && d.who!==Net.myId && !mp2.ghost) toast('¡El otro punto '+(this.M.reactorName?'':'del reactor ')+'está activo! ('+REACTOR_WINDOW+' s)','#ffcc48',1400);
     }
     else if(e==='sabend'){ gameState.sabotage=null; UI.alert(null); Audio2.ok(); toast('SABOTAJE REPARADO','#37d6a0'); UI.renderTasks(); UI.updateTaskBar(); }
     else if(e==='lightson'){ gameState.lightsOut=false; UI.alert(null); toast('LUCES RESTAURADAS','#ffcc48');
@@ -8691,8 +9366,9 @@ const Game = {
     if(gameState.sabotage){
       const st=gameState.sabotage.type;
       if((st==='critical'||st==='o2'||st==='reactor') && now>gameState.sabotage.until){
-        this.hostEnd('imp', st==='o2' ? 'El oxigeno se agoto.'
-                          : (st==='reactor' ? 'El reactor se fundio.' : 'El sabotaje critico no fue reparado a tiempo.'));
+        this.hostEnd('imp', st==='o2' ? 'El oxígeno se agotó.'
+                          : (st==='reactor' ? (this.M.reactorName ? this.M.reactorName+': no se estabilizaron a tiempo.' : 'El reactor se fundió.')
+                                            : 'El sabotaje crítico no fue reparado a tiempo.'));
         gameState.sabotage=null;
       } else if(st==='comms' && !gameState.sabotage.fix && now>gameState.sabotage.until){
         gameState.sabotage=null;
@@ -9904,13 +10580,21 @@ const SabMap = {
     }
     if((M.reactorPts||[]).length>=2){
       let x=0,z=0; for(const r of M.reactorPts){ x+=r.x; z+=r.z; }
-      this.icons.push({kind:'reactor', x:x/M.reactorPts.length, z:z/M.reactorPts.length, emoji:'☢️', label:'REACTOR'});
+      this.icons.push({kind:'reactor', x:x/M.reactorPts.length, z:z/M.reactorPts.length, emoji:'☢️', label:(M.reactorName||'Reactor').toUpperCase()});
     }
     const groups={};
     for(const d of M.doors){ (groups[d.group]=groups[d.group]||[]).push(d); }
     for(const g in groups){
       let x=0,z=0; for(const d of groups[g]){ x+=(d.x1+d.x2)/2; z+=(d.z1+d.z2)/2; }
       this.icons.push({kind:'doors', group:g, x:x/groups[g].length, z:z/groups[g].length, emoji:'🚪', label:g.toUpperCase()});
+    }
+    /* la leyenda solo nombra los sabotajes que existen en este mapa */
+    const lg=$('sabLegend');
+    if(lg){
+      const has=k=>this.icons.some(i=>i.kind===k);
+      const items=[['lights','💡 Luces'],['o2','💨 Oxígeno'],['reactor','☢ '+(M.reactorName||'Reactor')],['comms','📡 Comunicaciones'],
+                   ['critical','☢ Emergencia crítica'],['doors','🚪 Cerrar puertas']].filter(it=>has(it[0]));
+      lg.innerHTML=items.map(it=>'<span>'+esc(it[1])+'</span>').join('');
     }
   },
   disabled(ic){
@@ -11735,7 +12419,7 @@ const UI = {
     } else show(st,false);
     show('redFlash', !!crit && playing);
     if(sabT==='o2') this.alert('💨 FUGA DE OXÍGENO · ESCRIBE EL CÓDIGO EN LOS DOS PUNTOS');
-    else if(sabT==='reactor') this.alert('☢ REACTOR INESTABLE · DOS JUGADORES A LA VEZ EN LOS DOS PUNTOS');
+    else if(sabT==='reactor') this.alert('☢ '+((Game.M&&Game.M.reactorName)?Game.M.reactorName.toUpperCase():'REACTOR INESTABLE')+' · DOS JUGADORES A LA VEZ EN LOS DOS PUNTOS');
     else if(crit) this.alert('☢ EMERGENCIA CRÍTICA · REPARAR LOS DOS PUNTOS');
     else if(gameState.lightsOut && playing) this.alert('💡 LUCES SABOTEADAS · ARREGLA LOS INTERRUPTORES');
     else if(sabT==='comms') this.alert(Game.M && Game.M.commsPos
@@ -11989,12 +12673,12 @@ const Cine = {
    Al ser texto, el host lo envia tal cual a los invitados.
    ===================================================================== */
 const MAP_FORMAT = 'sicariato-map';
-const ED_HIDDEN_PROPS = { vent:1, embutton:1, repairpt:1, seccam:1, bloodpool:1, lavapool:1 };
+const ED_HIDDEN_PROPS = { vent:1, embutton:1, repairpt:1, seccam:1, bloodpool:1 };
 /* utileria de pared o techo: se coloca sin colision (no estorba al caminar) */
 const ED_NOSOLID_PROPS = { projector:1, projscreen:1, wallclock:1, airduct:1, lightpanel:1, spacewin:1, vbanner:1, shopsign:1,
                            starmap:1, emerglight:1, spacepipe:1,
                            fusebox:1, wirebundle:1, vitalsboard:1, surgerylight:1, ceilinglight:1, wallvent:1,
-                           pipewall:1, cautionfloor:1, foodtray:1, samplerack:1, centrifuge:1, decontam:1, medscan:1 };
+                           pipewall:1, cautionfloor:1, foodtray:1, samplerack:1, centrifuge:1, decontam:1, medscan:1, lavapool:1 };
 const PROP_NAMES = {
   desk:'Pupitre', chair:'Silla', table:'Mesa', locker:'Casilleros', computer:'Computadora', monitor:'Monitor',
   whiteboard:'Pizarra blanca', board:'Pizarrón', bed:'Cama', stretcher:'Camilla', panel:'Panel', wirepanel:'Panel de cables',
@@ -12044,7 +12728,7 @@ const PROP_NAMES = {
   samplerack:'Gradilla de muestras', centrifuge:'Centrífuga',
   boiler:'Caldera', spaceheater:'Calefactor', decontam:'Descontaminación', dropseat:'Asientos de nave',
   ceilinglight:'Luminaria de techo', wallvent:'Rejilla de pared', shiprail:'Baranda de nave',
-  pipewall:'Tubos de pared', cautionfloor:'Franja de precaución'
+  pipewall:'Tubos de pared', cautionfloor:'Franja de precaución', lavapool:'Lava'
 };
 function propLabel(k){ return PROP_NAMES[k] || (k.charAt(0).toUpperCase()+k.slice(1)); }
 function colorOr(v, def){ return (typeof v==='string' && /^#[0-9a-fA-F]{6}$/.test(v)) ? v.toLowerCase() : def; }
@@ -12068,6 +12752,16 @@ function propScaleOf(p){
 /* limpia cualquier archivo recibido (de disco o de la red) */
 /* radio del circulo de aparicion (los mapas viejos no lo traen) */
 function spawnRadiusOf(d){ const v=d && d.spawnR; return (typeof v==='number' && isFinite(v)) ? clamp(v,0,20) : 3.2; }
+/* materiales de suelo que un mapa puede pedir para una sala o para el terreno */
+const FLOOR_MATS = { metalfloor:1, tile:1, carpet:1, wood:1, parquet:1, stone:1, snow:1, grass:1, asphalt:1, court:1 };
+const FLOOR_MAT_NAMES = [['','Automático'],['metalfloor','Metal'],['tile','Baldosa'],['carpet','Alfombra'],['wood','Madera'],
+  ['parquet','Parquet'],['stone','Piedra'],['snow','Nieve'],['grass','Césped'],['asphalt','Asfalto'],['court','Cancha']];
+function edMatSelect(cur, onPick){
+  const s=document.createElement('select'); s.className='inp'; s.style.cssText='padding:4px 6px;font-size:13px';
+  for(const [v,n] of FLOOR_MAT_NAMES){ const o=document.createElement('option'); o.value=v; o.textContent=n; if((cur||'')===v) o.selected=true; s.appendChild(o); }
+  s.onchange=()=>onPick(s.value);
+  return s;
+}
 function sanitizeMapData(raw){
   if(!raw || typeof raw!=='object') return null;
   const L=300;
@@ -12084,6 +12778,7 @@ function sanitizeMapData(raw){
     outdoor: raw.outdoor!==false,
     sky: [ colorOr(raw.sky&&raw.sky[0],'#2d4f7a'), colorOr(raw.sky&&raw.sky[1],'#93b4cf') ],
     ground: raw.ground===null ? null : colorOr(raw.ground,'#5f8c46'),
+    groundMat: FLOOR_MATS[raw.groundMat] ? raw.groundMat : null,
     rooms: arr(raw.rooms,120).filter(r=>r&&typeof r==='object').map(r=>{
       const hall = r.kind==='hall';
       const poly = arr(r.poly,32).filter(q=>Array.isArray(q)).map(q=>[num(q[0],-L,L,0), num(q[1],-L,L,0)]);
@@ -12092,6 +12787,7 @@ function sanitizeMapData(raw){
         x:num(r.x,-L,L,0), z:num(r.z,-L,L,0), w:num(r.w,1,150,8), d:num(r.d,1,150,8),
         floor:colorOr(r.floor, hall?'#b9c0c9':'#c3c9d1'), wall:colorOr(r.wall, hall?'#d4d9df':'#dfe3e8'), h:num(r.h,2.2,9,3.1),
         ceil:r.ceil!==false, open:!!r.open, gaps:gapsOf(r.gaps) };
+      if(FLOOR_MATS[r.mat]) o.mat=r.mat;
       if(poly.length>=3){
         o.poly=poly.slice(0,32);
         o.pgaps=arr(r.pgaps,32).map(a=>arr(a,10).filter(x=>Array.isArray(x)).map(x=>[num(x[0],0,400,0), num(x[1],0.5,40,2.5)]));
@@ -12125,8 +12821,14 @@ function sanitizeMapData(raw){
     }),
     repair: arr(raw.repair,2).filter(r=>r&&typeof r==='object').map(r=>pt(r,{x:0,z:0})),
     o2: arr(raw.o2,2).filter(r=>r&&typeof r==='object').map(r=>pt(r,{x:0,z:0})),
-    reactor: arr(raw.reactor,2).filter(r=>r&&typeof r==='object').map(r=>pt(r,{x:0,z:0})),
-    comms: raw.comms ? pt(raw.comms,{x:0,z:0}) : null
+    reactor: arr(raw.reactor,2).filter(r=>r&&typeof r==='object').map(r=>{
+      const q=pt(r,{x:0,z:0}), n=str(r.name,28,''); if(n) q.name=n; return q; }),
+    reactorName: str(raw.reactorName,28,'') || null,
+    comms: raw.comms ? pt(raw.comms,{x:0,z:0}) : null,
+    /* puertas que el impostor puede cerrar: tramos sobre un hueco de puerta, agrupados por sala */
+    doors: arr(raw.doors,40).filter(o=>o&&typeof o==='object').map(o=>({
+      x1:num(o.x1,-L,L,0), z1:num(o.z1,-L,L,0), x2:num(o.x2,-L,L,1), z2:num(o.z2,-L,L,0),
+      group:str(o.group,24,'')||'Puerta' })).filter(o=>Math.hypot(o.x2-o.x1,o.z2-o.z1)>=0.8)
   };
   const vids={};
   d.vents = arr(raw.vents,80).filter(v=>v&&typeof v==='object').map((v,i)=>{
@@ -12230,6 +12932,7 @@ function hallLabels(d, links){
   const isHall=i=>rooms[i] && rooms[i].kind==='hall';
   for(let i=0;i<rooms.length;i++){
     if(!isHall(i)) continue;
+    if(rooms[i].open){ out[i]='el exterior'; continue; }      /* camino o nieve al aire libre */
     const names=[], seen={};
     const grab=(k)=>{ for(const j of links[k]) if(!isHall(j) && rooms[j].name && !seen[rooms[j].name]){ seen[rooms[j].name]=1; names.push(rooms[j].name); } };
     grab(i);
@@ -12242,9 +12945,10 @@ function hallLabels(d, links){
   return out;
 }
 /* construye un GameMap jugable a partir del archivo */
-function buildCustomMap(raw){
+function buildCustomMap(raw, mapId){
+  const id = mapId || 'custom';          /* 'custom' = el del editor; los mapas de la lista traen el suyo */
   const d = sanitizeMapData(raw) || sanitizeMapData(MapEditor.starter());
-  const M = new GameMap('custom', d.name.toUpperCase());
+  const M = new GameMap(id, d.name.toUpperCase());
   M.space = d.theme==='space';
   M.signStyle = M.space ? {bg:'#1c2a3a', color:'#9fe0ff'} : {bg:'#7d2231', color:'#f4e7c4', border:'#e8c35a'};
   M.fogColor = M.space ? [16,22,34] : [12,16,26];
@@ -12258,12 +12962,14 @@ function buildCustomMap(raw){
   for(const r of d.rooms){ grow(r.x,r.z); grow(r.x+r.w,r.z+r.d); }
   for(const w of d.walls){ grow(w.x1,w.z1); grow(w.x2,w.z2); }
   for(const p of d.props) grow(p.x,p.z);
-  if(d.ground) M.room('', x0-24, z0-24, (x1-x0)+48, (z1-z0)+48, {floor:d.ground, noCeil:true, open:'nswe', signs:false});
+  if(d.ground) M.room('', x0-24, z0-24, (x1-x0)+48, (z1-z0)+48, {floor:d.ground, noCeil:true, open:'nswe', signs:false,
+                                                                    mat:d.groundMat||undefined});
   const conn=hallConnections(d), labels=hallLabels(d, conn.links);
   d.rooms.forEach((r,i)=>{
     const hall = r.kind==='hall';
     const auto = conn.gaps[i];
-    const common = { floor:r.floor, wall:r.wall, h:r.h, noCeil:(!r.ceil || r.open), lights:(r.ceil && !r.open), signs:!hall };
+    const common = { floor:r.floor, wall:r.wall, h:r.h, noCeil:(!r.ceil || r.open), lights:(r.ceil && !r.open), signs:!hall,
+                     mat:r.mat||undefined };
     let rr;
     if(r.poly && r.poly.length>=3){
       const gaps=r.poly.map((q,k)=> ((r.pgaps&&r.pgaps[k])||[]).concat(auto[k]||[]));
@@ -12276,6 +12982,7 @@ function buildCustomMap(raw){
     if(rr && hall){ rr.hall=true; rr.label=labels[i]||'un pasillo'; }
   });
   for(const w of d.walls) M.addWall(w.x1,w.z1,w.x2,w.z2,w.h,w.color);
+  (d.doors||[]).forEach((o,i)=>M.door('cu_d'+i, o.group, o.x1,o.z1,o.x2,o.z2));
   for(const p of d.props){
     const sc=propScaleOf(p);
     const o=M.addObj(propMesh(p.k), p.x, p.y||0, p.z, p.r, p.k);
@@ -12288,10 +12995,12 @@ function buildCustomMap(raw){
       else M.addBlock(bx, bz, f.w*sc[0], f.d*sc[2], p.r);
     }
   }
+  const inArea=(q,x,z)=> (q.poly&&q.poly.length>=3) ? pointInPoly(q.poly,x,z)
+                                                    : (x>=q.x && x<=q.x+q.w && z>=q.z && z<=q.z+q.d);
   const roomAt=(x,z)=>{
-    const r=d.rooms.find(q=> (q.poly&&q.poly.length>=3) ? pointInPoly(q.poly,x,z)
-                                                       : (x>=q.x && x<=q.x+q.w && z>=q.z && z<=q.z+q.d));
-    if(!r) return 'Exterior';
+    /* las salas cerradas mandan sobre el terreno exterior que las rodea */
+    const r=d.rooms.find(q=>!q.open && inArea(q,x,z)) || d.rooms.find(q=>q.open && inArea(q,x,z));
+    if(!r || (r.kind==='hall' && r.open)) return 'Exterior';
     if(r.kind==='hall'){ const i=d.rooms.indexOf(r); return (labels[i]||'un pasillo').replace(/^el /,'').replace(/^un /,''); }
     return r.name;
   };
@@ -12304,7 +13013,7 @@ function buildCustomMap(raw){
   const tasks = d.tasks.length ? d.tasks : [
     {id:'cu_auto1', type:'wires', name:'Conectar cables', x:d.spawn.x-4, z:d.spawn.z+4, kind:'short'},
     {id:'cu_auto2', type:'clean', name:'Limpiar la zona', x:d.spawn.x+4, z:d.spawn.z+4, kind:'short'},
-    {id:'cu_auto3', type:'keypad', name:'Introducir codigo', x:d.spawn.x, z:d.spawn.z-5, kind:'common'} ];
+    {id:'cu_auto3', type:'keypad', name:'Introducir código', x:d.spawn.x, z:d.spawn.z-5, kind:'common'} ];
   const chainN={};
   for(const t of tasks) if(t.chain) chainN[t.chain]=(chainN[t.chain]||0)+1;
   for(const t of tasks){
@@ -12314,8 +13023,8 @@ function buildCustomMap(raw){
   }
   d.cams.forEach((c,i)=>M.cam('cu_c'+i, c.name, c.x, 2.6, c.z, c.yaw, undefined,
                               {yawA:c.yaw, yawB:(typeof c.yaw2==='number'?c.yaw2:c.yaw+CAM_SWEEP*2)}));
-  CAM_STATION.custom = d.cams.length ? (d.camStation || {x:d.spawn.x-3, z:d.spawn.z-3}) : null;
-  if(CAM_STATION.custom) place(M,'monitor',CAM_STATION.custom.x,CAM_STATION.custom.z,0,true,1.0,0.5);
+  CAM_STATION[id] = d.cams.length ? (d.camStation || {x:d.spawn.x-3, z:d.spawn.z-3}) : null;
+  if(CAM_STATION[id]) place(M,'monitor',CAM_STATION[id].x,CAM_STATION[id].z,0,true,1.0,0.5);
   /* interruptor de luces: solo si el autor lo coloco (si no, no hay sabotaje de luces) */
   M.lightsPos = d.lights ? {x:d.lights.x, z:d.lights.z} : null;
   if(M.lightsPos){
@@ -12330,9 +13039,11 @@ function buildCustomMap(raw){
     M.o2Point('cu_o1','Oxígeno A',d.o2[0].x,d.o2[0].z);
     M.o2Point('cu_o2','Oxígeno B',d.o2[1].x,d.o2[1].z);
   }
+  M.reactorName = d.reactorName || null;
   if(d.reactor.length>=2){
-    M.reactorPoint('cu_x1','Reactor A',d.reactor[0].x,d.reactor[0].z);
-    M.reactorPoint('cu_x2','Reactor B',d.reactor[1].x,d.reactor[1].z);
+    const rn=d.reactorName||'Reactor';
+    M.reactorPoint('cu_x1',d.reactor[0].name||(rn+' A'),d.reactor[0].x,d.reactor[0].z);
+    M.reactorPoint('cu_x2',d.reactor[1].name||(rn+' B'),d.reactor[1].x,d.reactor[1].z);
   }
   if(d.comms) M.commsPoint(d.comms.x, d.comms.z);
   return M.finalize();
@@ -12365,7 +13076,7 @@ const ED_TOOLS = [
 ];
 const MapEditor = {
   data:null, tool:'select', sel:null, hist:[], fut:[], view:{x:0,z:6,s:16}, snap:true,
-  propKey:'desk', propRot:0, taskType:'wires', taskKind:'short', doorW:2.5, drag:null, mouse:{x:0,z:0,px:0,py:0},
+  propKey:'desk', propRot:0, taskType:'wires', taskKind:'short', doorW:2.5, doorSab:false, drag:null, mouse:{x:0,z:0,px:0,py:0},
   taskPreset:'wiring', taskDraft:null, chainDraft:null, snapStep:0.5, altFree:false,
   propScale:[1,1,1], propLock:true,     /* escala del objeto por colocar (X,Y,Z) y candado de proporciones */
   ventFrom:null, returnAfterTest:false, built:false, thumbs:{}, shape:null,
@@ -12384,7 +13095,7 @@ const MapEditor = {
       vents:[ {id:'v1',name:'Cafetería',x:8,z:-6,links:['v2']}, {id:'v2',name:'Aula',x:7,z:28,links:['v1']} ],
       tasks:[ {id:'t1',type:'wires',name:'Conectar cables',x:-9.2,z:-2,kind:'short'},
               {id:'t2',type:'clean',name:'Limpiar la zona',x:6,z:26,kind:'short'},
-              {id:'t3',type:'keypad',name:'Introducir codigo',x:9.2,z:3,kind:'common'} ],
+              {id:'t3',type:'keypad',name:'Introducir código',x:9.2,z:3,kind:'common'} ],
       cams:[], repair:[{x:-7,z:27},{x:8,z:6}] };
   },
   /* ---------- abrir / cerrar ---------- */
@@ -12456,7 +13167,8 @@ const MapEditor = {
     if(!d.rooms.length && !d.walls.length) out.push('El mapa no tiene salas ni paredes');
     if(!d.tasks.length) out.push('Sin tareas: se añadirán 3 automáticas');
     if(!d.lights) out.push('Sin interruptor de luces: no habrá sabotaje de luces');
-    if(!d.repair.length) out.push('Sin puntos de reparación: no habrá emergencia crítica');
+    if(!d.repair.length && (d.o2||[]).length<2 && (d.reactor||[]).length<2)
+      out.push('Sin sabotaje crítico (reparación, oxígeno o reactor): el impostor no podrá forzar una emergencia');
     else if(d.repair.length<2) out.push('Solo hay 1 punto de reparación (con uno basta para arreglarla)');
     if((d.o2||[]).length===1) out.push('El sabotaje de oxígeno necesita 2 puntos');
     if((d.reactor||[]).length===1) out.push('El sabotaje del reactor necesita 2 puntos');
@@ -12466,7 +13178,7 @@ const MapEditor = {
     const solos=Object.keys(ch).filter(k=>ch[k]<2).length;
     if(solos) out.push(solos+' cadena'+(solos>1?'s':'')+' de tareas con una sola etapa (se contará como tarea normal)');
     const cn=hallConnections(d);
-    const loose=d.rooms.filter((r,i)=>r.kind==='hall' && !cn.links[i].length).length;
+    const loose=d.rooms.filter((r,i)=>r.kind==='hall' && !r.open && !cn.links[i].length).length;
     if(loose) out.push(loose+' pasillo'+(loose>1?'s no tocan':' no toca')+' ninguna sala');
     if(d.cams.length && !d.camStation) out.push('Hay cámaras pero no monitores para verlas');
     return out;
@@ -12534,7 +13246,7 @@ const MapEditor = {
     const sel=this.selected();
     if(sel){
       const o=sel.obj, k=sel.kind;
-      h(((k==='room' && o.kind==='hall') ? 'PASILLO' : null) || {room:'SALA',wall:'PARED',prop:'OBJETO',vent:'VENTILACIÓN',task:'TAREA',cam:'CÁMARA',repair:'REPARACIÓN CRÍTICA',o2:'PUNTO DE OXÍGENO',reactor:'PUNTO DEL REACTOR',comms:'PUNTO DE RADIO',spawn:'APARICIÓN',emergency:'BOTÓN DE EMERGENCIA',lights:'INTERRUPTOR DE LUCES',station:'MONITORES DE CÁMARAS'}[k]||'ELEMENTO');
+      h(((k==='room' && o.kind==='hall') ? 'PASILLO' : null) || {room:'SALA',wall:'PARED',prop:'OBJETO',vent:'VENTILACIÓN',task:'TAREA',cam:'CÁMARA',repair:'REPARACIÓN CRÍTICA',o2:'PUNTO DE OXÍGENO',reactor:'PUNTO DEL REACTOR',door:'PUERTA SABOTEABLE',comms:'PUNTO DE RADIO',spawn:'APARICIÓN',emergency:'BOTÓN DE EMERGENCIA',lights:'INTERRUPTOR DE LUCES',station:'MONITORES DE CÁMARAS'}[k]||'ELEMENTO');
       if(k==='room'){
         const isHall=o.kind==='hall', isPoly=!!(o.poly && o.poly.length>=3);
         if(!isHall) row('Nombre', inp('text',o.name,v=>{ o.name=String(v).slice(0,24)||'Sala'; },{maxlength:24}));
@@ -12544,6 +13256,7 @@ const MapEditor = {
           else if(!o.name) o.name='Sala '+(this.data.rooms.filter(r=>r.kind!=='hall').length+1);
         }));
         row('Suelo', inp('color',o.floor,v=>{ o.floor=v; }));
+        row('Material del suelo', edMatSelect(o.mat, v=>{ this.push(); if(v) o.mat=v; else delete o.mat; this.changed(); }));
         row('Paredes', inp('color',o.wall,v=>{ o.wall=v; }));
         row('Altura (m)', inp('number',o.h,v=>{ o.h=clamp(v||3.1,2.2,9); },{min:2.2,max:9,step:0.1}));
         row('Techo y luces', inp('checkbox',o.ceil,v=>{ o.ceil=v; }));
@@ -12616,6 +13329,17 @@ const MapEditor = {
           n.textContent='Con la herramienta 🔗 Etapas puedes unir varias tareas para que haya que hacerlas en orden (como cargar combustible en Among Us).';
           side.appendChild(n);
         }
+      } else if(k==='door'){
+        row('Sala (grupo)', inp('text',o.group,v=>{ o.group=String(v).slice(0,24)||'Puerta'; },{maxlength:24}));
+        const n=document.createElement('div'); n.className='edNote';
+        n.textContent='El impostor cierra a la vez todas las puertas con el mismo nombre de sala. Se mueve junto con su sala.';
+        side.appendChild(n);
+      } else if(k==='reactor'){
+        row('Nombre del punto', inp('text',o.name||'',v=>{ const t=String(v).slice(0,28).trim(); if(t) o.name=t; else delete o.name; },{maxlength:28}));
+        row('Nombre del sabotaje', inp('text',this.data.reactorName||'',v=>{ this.data.reactorName=String(v).slice(0,28).trim()||null; },{maxlength:28}));
+        const n=document.createElement('div'); n.className='edNote';
+        n.textContent='Dos jugadores deben activar los dos puntos casi a la vez. Sin nombre se llama "Reactor" (en Polus: estabilizadores sísmicos).';
+        side.appendChild(n);
       } else if(k==='cam'){
         if(typeof o.yaw2!=='number') o.yaw2=o.yaw+CAM_SWEEP*2;
         const deg=a=>Math.round(a*180/Math.PI);
@@ -12724,17 +13448,27 @@ const MapEditor = {
       h('PUERTA');
       const e=document.createElement('input'); e.type='number'; e.min=1; e.max=12; e.step=0.5; e.value=this.doorW; e.onchange=()=>{ this.doorW=clamp(parseFloat(e.value)||2.5,1,12); };
       row('Ancho del hueco (m)', e);
+      const c=document.createElement('input'); c.type='checkbox'; c.checked=!!this.doorSab; c.onchange=()=>{ this.doorSab=c.checked; };
+      row('Puerta que el impostor puede cerrar', c);
+      const n=document.createElement('div'); n.className='edNote';
+      n.innerHTML='Clic en una pared: abre un hueco. Con la casilla marcada el hueco lleva además una <b>puerta saboteable</b> (naranja); '
+                + 'clic sobre un hueco que ya existe le pone o le quita la puerta. Las puertas de una misma sala se cierran juntas.';
+      side.appendChild(n);
     } else if(!sel){
       h('MAPA');
       row('Color del cielo (arriba)', inp('color',this.data.sky[0],v=>{ this.data.sky[0]=v; }));
       row('Color del cielo (horizonte)', inp('color',this.data.sky[1],v=>{ this.data.sky[1]=v; }));
       row('Terreno exterior', inp('checkbox',!!this.data.ground,v=>{ this.data.ground = v ? '#5f8c46' : null; }));
-      if(this.data.ground) row('Color del terreno', inp('color',this.data.ground,v=>{ this.data.ground=v; }));
+      if(this.data.ground){
+        row('Color del terreno', inp('color',this.data.ground,v=>{ this.data.ground=v; }));
+        row('Material del terreno', edMatSelect(this.data.groundMat, v=>{ this.push(); this.data.groundMat=v||null; this.changed(); }));
+      }
       const st=document.createElement('div'); st.className='edNote';
       const d=this.data;
       const sabs=[]; if((d.o2||[]).length>=2) sabs.push('O2'); if((d.reactor||[]).length>=2) sabs.push('reactor'); if(d.comms) sabs.push('radio');
-      const nh=d.rooms.filter(r=>r.kind==='hall').length;
-      st.innerHTML='<b>'+(d.rooms.length-nh)+'</b> salas · <b>'+nh+'</b> pasillos · <b>'+d.walls.length+'</b> paredes · <b>'+d.props.length+'</b> objetos<br><b>'+d.vents.length+'</b> ventilaciones · <b>'+d.tasks.length+'</b> tareas · <b>'+d.cams.length+'</b> cámaras'+
+      if((d.doors||[]).length) sabs.push('puertas');
+      const nh=d.rooms.filter(r=>r.kind==='hall' && !r.open).length, nx=d.rooms.filter(r=>r.kind==='hall' && r.open).length;
+      st.innerHTML='<b>'+(d.rooms.length-nh-nx)+'</b> salas · <b>'+nh+'</b> pasillos'+(nx?' · <b>'+nx+'</b> zonas exteriores':'')+' · <b>'+d.walls.length+'</b> paredes · <b>'+d.props.length+'</b> objetos<br><b>'+d.vents.length+'</b> ventilaciones · <b>'+d.tasks.length+'</b> tareas · <b>'+d.cams.length+'</b> cámaras'+
         (sabs.length? '<br>Sabotajes extra: <b>'+sabs.join(', ')+'</b>' : '');
       side.appendChild(st);
       const w=this.validate();
@@ -12815,6 +13549,7 @@ const MapEditor = {
     else if(s.kind==='reactor') obj=(d.reactor||[])[s.i]; else if(s.kind==='comms') obj=d.comms;
     else if(s.kind==='spawn') obj=d.spawn; else if(s.kind==='emergency') obj=d.emergency;
     else if(s.kind==='lights') obj=d.lights; else if(s.kind==='station') obj=d.camStation;
+    else if(s.kind==='door') obj=(d.doors||[])[s.i];
     if(!obj){ this.sel=null; return null; }
     return { kind:s.kind, i:s.i, obj };
   },
@@ -12837,6 +13572,7 @@ const MapEditor = {
       const dx=w.x-p.x, dz=w.z-p.z, lx=dx*c-dz*s-f.cx*pc[0], lz=dx*s+dz*c-f.cz*pc[2];
       if(Math.abs(lx)<=f.w*pc[0]/2+0.15 && Math.abs(lz)<=f.d*pc[2]/2+0.15) return {kind:'prop',i};
     }
+    for(let i=((d.doors||[]).length)-1;i>=0;i--){ const q=d.doors[i]; if(segDist(w.x,w.z,q.x1,q.z1,q.x2,q.z2)<Math.max(0.35,6/this.view.s)) return {kind:'door',i}; }
     for(let i=d.walls.length-1;i>=0;i--){ const q=d.walls[i]; if(segDist(w.x,w.z,q.x1,q.z1,q.x2,q.z2)<Math.max(0.35,6/this.view.s)) return {kind:'wall',i}; }
     for(let i=d.rooms.length-1;i>=0;i--){
       const r=d.rooms[i];
@@ -12853,6 +13589,7 @@ const MapEditor = {
     else if(s.kind==='o2') (d.o2||[]).splice(s.i,1); else if(s.kind==='reactor') (d.reactor||[]).splice(s.i,1);
     else if(s.kind==='comms') d.comms=null;
     else if(s.kind==='lights') d.lights=null; else if(s.kind==='station') d.camStation=null;
+    else if(s.kind==='door') (d.doors||[]).splice(s.i,1);
     else { toast('La aparición y el botón no se pueden borrar: muévelos','#ffcc48',1400); return; }
     this.sel=null;
   },
@@ -12868,6 +13605,11 @@ const MapEditor = {
       if(this.sel){
         const s=this.selected(); this.push();
         this.drag={mode:'move', sx:w.x, sz:w.z, orig:JSON.parse(JSON.stringify(s.obj)), moved:false};
+        if(s.kind==='room'){                  /* las puertas saboteables de sus huecos se mueven con la sala */
+          const ed=areaEdges(s.obj);
+          this.drag.doors=(d.doors||[]).map((o,i)=>({i,o:JSON.parse(JSON.stringify(o))}))
+            .filter(q=>ed.some(e=>segDist((q.o.x1+q.o.x2)/2,(q.o.z1+q.o.z2)/2,e.x1,e.z1,e.x2,e.z2)<0.3));
+        }
       }
       this.renderSide(); this.draw(); return;
     }
@@ -12984,7 +13726,8 @@ const MapEditor = {
           for(const k of ['n','s']) o.gaps[k]=(g.gaps[k]||[]).map(q=>[q[0]+dx,q[1]]);
           for(const k of ['w','e']) o.gaps[k]=(g.gaps[k]||[]).map(q=>[q[0]+dz,q[1]]);
         }
-      } else if(s.kind==='wall'){ o.x1=g.x1+dx; o.z1=g.z1+dz; o.x2=g.x2+dx; o.z2=g.z2+dz; }
+        for(const q of (dr.doors||[])){ const o2=(this.data.doors||[])[q.i]; if(o2){ o2.x1=q.o.x1+dx; o2.z1=q.o.z1+dz; o2.x2=q.o.x2+dx; o2.z2=q.o.z2+dz; } }
+      } else if(s.kind==='wall' || s.kind==='door'){ o.x1=g.x1+dx; o.z1=g.z1+dz; o.x2=g.x2+dx; o.z2=g.z2+dz; }
       else { o.x=g.x+dx; o.z=g.z+dz; }
       this.draw();
     }
@@ -13149,11 +13892,21 @@ const MapEditor = {
     const base = poly ? 0 : ((best.e.key==='n'||best.e.key==='s') ? best.e.x1 : best.e.z1);
     const along = base + best.t;
     const hit=g.findIndex(q=>along>=q[0]-0.2 && along<=q[0]+q[1]+0.2);
-    if(hit>=0) g.splice(hit,1);
-    else {
+    const e=best.e, ux=(e.x2-e.x1)/best.L, uz=(e.z2-e.z1)/best.L;
+    const seg=q=>{ const t0=q[0]-base, t1=t0+q[1]; return {x1:e.x1+ux*t0, z1:e.z1+uz*t0, x2:e.x1+ux*t1, z2:e.z1+uz*t1}; };
+    const doorOn=q=>{ const s=seg(q); return (d.doors||[]).findIndex(o=>segDist((o.x1+o.x2)/2,(o.z1+o.z2)/2,s.x1,s.z1,s.x2,s.z2)<0.3); };
+    const group=(r.kind==='hall' || !r.name) ? 'Pasillo' : r.name;
+    if(hit>=0){
+      const di=doorOn(g[hit]);
+      if(this.doorSab){                               /* con la casilla: pone o quita la puerta y el hueco se queda */
+        if(di>=0){ d.doors.splice(di,1); toast('Puerta saboteable quitada','#ffcc48',1000); }
+        else { (d.doors=d.doors||[]).push(Object.assign(seg(g[hit]),{group})); toast('Puerta saboteable: '+group,'#e0892e',1100); }
+      } else { g.splice(hit,1); if(di>=0) d.doors.splice(di,1); }
+    } else {
       const wd=Math.min(this.doorW, best.L);
       let start=this.snapV(along-wd/2); start=clamp(start, base, base+best.L-wd);
       g.push([start, wd]);
+      if(this.doorSab) (d.doors=d.doors||[]).push(Object.assign(seg([start, wd]),{group}));
     }
     this.sel={kind:'room',i:best.i};
     this.changed();
@@ -13226,7 +13979,7 @@ const MapEditor = {
       }
       const cx=poly?polyCentroid(poly)[0]:(r.x+r.w/2), cz=poly?polyCentroid(poly)[1]:(r.z+r.d/2);
       if(hall){
-        if(r.w*s>70 || r.d*s>70){
+        if(!r.open && (r.w*s>70 || r.d*s>70)){
           ctx.font='800 '+Math.round(clamp(s*0.42,9,13))+'px "Nunito","Segoe UI",Arial'; ctx.textAlign='center'; ctx.textBaseline='middle';
           const txt=(labels[i]||'un pasillo').toUpperCase();
           ctx.lineWidth=4; ctx.strokeStyle='rgba(0,0,0,.65)'; ctx.strokeText(txt,X(cx),Z(cz));
@@ -13242,6 +13995,11 @@ const MapEditor = {
     d.walls.forEach((w,i)=>{
       ctx.lineCap='round'; ctx.lineWidth=Math.max(3,0.24*s); ctx.strokeStyle=isSel('wall',i)?'#ffcc48':w.color;
       ctx.beginPath(); ctx.moveTo(X(w.x1),Z(w.z1)); ctx.lineTo(X(w.x2),Z(w.z2)); ctx.stroke();
+    });
+    /* puertas que se pueden sabotear */
+    (d.doors||[]).forEach((o,i)=>{
+      ctx.lineCap='butt'; ctx.lineWidth=Math.max(4,0.34*s); ctx.strokeStyle=isSel('door',i)?'#ffcc48':'#e0892e';
+      ctx.beginPath(); ctx.moveTo(X(o.x1),Z(o.z1)); ctx.lineTo(X(o.x2),Z(o.z2)); ctx.stroke();
     });
     /* objetos */
     const drawProp=(p,sel,ghost)=>{
