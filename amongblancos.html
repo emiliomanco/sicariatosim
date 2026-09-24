@@ -4732,10 +4732,10 @@ function mapTorremar(){
   place(M,'tree',-22,30); place(M,'tree',22,30); place(M,'tree',-24,18); place(M,'tree',24,18);
 
   /* --- RECEPCION --- */
-  M.room('Recepcion',-7,14,14,10,{floor:F,wall:W,o:{s:[[-3,6]],n:[[-2,4]]}});
+  M.room('Recepción',-7,14,14,10,{floor:F,wall:W,o:{s:[[-3,6]],n:[[-2,4]]}});
   place(M,'counter',0,16.5,0,true,2.8,1.0);
   place(M,'sofa',-5,21,Math.PI/2,true,1.0,2.2); place(M,'plant',5.6,21.5);
-  M.task('t_rec_log','Registrar visitantes','Recepcion',0,17.6,'computer','short');
+  M.task('t_rec_log','Registrar visitantes','Recepción',0,17.6,'computer','short');
 
   /* --- ADMINISTRACION + SEGURIDAD --- */
   M.room('Administracion',8,14,17,12,{floor:F,wall:W,o:{w:[[16,4]]}});
@@ -4743,9 +4743,9 @@ function mapTorremar(){
   place(M,'desk',20,18,0,true,1.4,.8); place(M,'chair',20,19.3);
   place(M,'bookshelf',22,15.3,Math.PI,true,2.3,.6);
   M.task('t_adm_files','Ordenar expedientes','Administracion',12,18.9,'sort','short');
-  M.room('Sala de Camaras',8,26.5,9,8,{floor:'#8e949c',wall:'#9aa3ad',o:{n:[[10,4]]}});
+  M.room('Sala de Cámaras',8,26.5,9,8,{floor:'#8e949c',wall:'#9aa3ad',o:{n:[[10,4]]}});
   place(M,'monitor',10.5,27.6,0,true,1.0,.5); place(M,'monitor',13.5,27.6,0,true,1.0,.5);
-  M.task('t_cam_check','Revisar grabaciones','Sala de Camaras',12,29,'sequence','common');
+  M.task('t_cam_check','Revisar grabaciones','Sala de Cámaras',12,29,'sequence','common');
 
   /* --- SALA DE PROFESORES --- */
   M.room('Sala de Profesores',27,14,14,11,{floor:'#a98d68',wall:W,o:{w:[[16,4]]}});
@@ -4755,11 +4755,11 @@ function mapTorremar(){
   M.task('t_prof_coffee','Preparar cafetera','Sala de Profesores',39,17.6,'switches','short');
 
   /* --- ENFERMERIA --- */
-  M.room('Enfermeria',-25,14,15,11,{floor:'#dfe7ee',wall:'#f2f6fa',o:{e:[[16,4]]}});
+  M.room('Enfermería',-25,14,15,11,{floor:'#dfe7ee',wall:'#f2f6fa',o:{e:[[16,4]]}});
   place(M,'stretcher',-21,19,0,true,1.0,2.2); place(M,'stretcher',-16,19,0,true,1.0,2.2);
   place(M,'sink',-23.5,15.4,Math.PI,true,1.5,.7);
-  M.task('t_enf_scan','Examen medico','Enfermeria',-12.5,19,'medscan','common');
-  M.task('t_enf_meds','Ordenar medicinas','Enfermeria',-23,22,'sort','short');
+  M.task('t_enf_scan','Examen medico','Enfermería',-12.5,19,'medscan','common');
+  M.task('t_enf_meds','Ordenar medicinas','Enfermería',-23,22,'sort','short');
 
   /* --- BANOS --- */
   M.room('Banos',-41,14,14,9,{floor:'#aeb6bf',wall:'#cdd6de',o:{e:[[16,4]]}});
@@ -4780,7 +4780,7 @@ function mapTorremar(){
   M.room('Aula A1',-36,0,11,10,{floor:'#b58a5c',wall:W,o:{s:[[-31,6]]}});
   M.room('Aula A2',-24,0,11,10,{floor:'#b58a5c',wall:W,o:{s:[[-19,6]]}});
   M.room('Laboratorio',-12,0,10,10,{floor:'#9fb2bd',wall:'#e6eef4',o:{s:[[-8,6]]}});
-  M.room('Informatica',2,0,11,10,{floor:'#8f97a3',wall:'#dde4ea',o:{s:[[3,6]]}});
+  M.room('Informática',2,0,11,10,{floor:'#8f97a3',wall:'#dde4ea',o:{s:[[3,6]]}});
   M.room('Biblioteca',15,0,14,10,{floor:'#a2763f',wall:W,o:{s:[[16,6]]}});
   M.room('Bodega',30,0,10,10,{floor:'#8d8577',wall:'#b3ab9b',o:{s:[[29,5]]}});
   for(const [bx,tag] of [[-36,'A1'],[-24,'A2']]){
@@ -4792,11 +4792,11 @@ function mapTorremar(){
   place(M,'table',-7,3,0,true,2.0,1.1); place(M,'table',-7,7,0,true,2.0,1.1);
   place(M,'wirepanel',-11.6,5,Math.PI/2,false);
   M.task('t_lab_wires','Conectar cables del laboratorio','Laboratorio',-10.9,5,'wires','short');
-  M.task('t_lab_gas','Reparar valvula de gas','Laboratorio',-4,1.2,'machine','long',{chain:'gas',step:0,steps:3});
+  M.task('t_lab_gas','Reparar válvula de gas','Laboratorio',-4,1.2,'machine','long',{chain:'gas',step:0,steps:3});
   M.vent('v_lab','Laboratorio',-4.5,8.5,['v_banos','v_comedor']);
   for(let i=0;i<6;i++){ place(M,'computer',4+ (i%3)*3.4, 2.2+Math.floor(i/3)*4.2,0,true,1.1,.7); }
-  M.task('t_info_upload','Transferir informacion','Informatica',4,2.2,'uploaddata','long',{chain:'datos',step:1,steps:2});
-  M.task('t_info_code','Introducir codigo de acceso','Informatica',10.8,6.4,'keypad','short');
+  M.task('t_info_upload','Transferir informacion','Informática',4,2.2,'uploaddata','long',{chain:'datos',step:1,steps:2});
+  M.task('t_info_code','Introducir código de acceso','Informática',10.8,6.4,'keypad','short');
   for(let i=0;i<4;i++) place(M,'bookshelf',16.5+i*3.2,1.0,0,true,2.3,.6);
   place(M,'table',22,6.5,0,true,2.0,1.1);
   M.task('t_bib_sort','Clasificar libros','Biblioteca',17,3.4,'sort','short');
@@ -4863,7 +4863,7 @@ function mapTorremar(){
   M.door('d_cafe','comedor',-32,-17,-26,-17);
   M.door('d_gim','gimnasio',4,-17,11,-17);
   M.door('d_lab','laboratorio',-8,10,-2,10);
-  M.door('d_info','informatica',3,10,9,10);
+  M.door('d_info','informática',3,10,9,10);
   M.door('d_adm','administracion',8,16,8,20);
   M.door('d_bib','biblioteca',16,10,22,10);
 
@@ -4876,8 +4876,8 @@ function mapTorremar(){
 
   /* --- emergencia + reparaciones criticas --- */
   M.emergency={x:0,z:12};  place(M,'embutton',0,12,0,true,1.1,1.1);
-  M.repairPoint('r1','Valvula Laboratorio',-6.5,8.6);
-  M.repairPoint('r2','Valvula Comedor',-19,-30.5);
+  M.repairPoint('r1','Válvula Laboratorio',-6.5,8.6);
+  M.repairPoint('r2','Válvula Comedor',-19,-30.5);
   M.spawn={x:0,z:20};
   M.lightsRoom='Bodega'; M.lightsPos={x:32,z:8.6};
   decoTorremar(M);
@@ -4905,14 +4905,14 @@ function mapPlazaLagos(){
 
   /* agua + malecon (borde este) */
   M.room('Lago',44,-60,40,120,{floor:'#2f6f9c',noCeil:true,open:'nswe'});
-  M.room('Malecon',28,-34,16,68,{floor:'#c6b294',noCeil:true,open:'nswe'});
+  M.room('Malecón',28,-34,16,68,{floor:'#c6b294',noCeil:true,open:'nswe'});
   M.addWall(44,-34,44,34,0.9,'#b9a88c');
   for(let i=0;i<8;i++) place(M,'palm',41,-30+i*8.5);
   for(let i=0;i<5;i++) place(M,'bench',38,-24+i*12,-Math.PI/2,false);
   place(M,'boat',47,10,0.3,false); place(M,'boat',48,-6,-0.2,false);
-  M.task('t_mal_lights','Encender luces del malecon','Malecon',33,-20,'switches','short');
-  M.task('t_mal_clean','Recoger residuos del malecon','Malecon',33,22,'clean','short');
-  M.vent('v_mal','Malecon',30,30,['v_parq','v_ofi']);
+  M.task('t_mal_lights','Encender luces del malecon','Malecón',33,-20,'switches','short');
+  M.task('t_mal_clean','Recoger residuos del malecon','Malecón',33,22,'clean','short');
+  M.vent('v_mal','Malecón',30,30,['v_parq','v_ofi']);
 
   /* faro + mirador (norte) */
   M.room('Mirador',-12,-40,26,18,{floor:'#bfb49f',noCeil:true,open:'s'});
@@ -4931,7 +4931,7 @@ function mapPlazaLagos(){
   M.room('Local 2 - Electronica',-62,-8,16,14,{floor:'#8f97a3',wall:W,o:{e:[[-4,5]]}});
   for(let i=0;i<4;i++) place(M,'computer',-58+i*3.2,-5,0,true,1.1,.7);
   M.task('t_local2','Reparar una computadora','Local 2 - Electronica',-58,-5,'computer','short');
-  M.task('t_local2b','Transferir catalogo','Local 2 - Electronica',-49,2,'uploaddata','long',{chain:'cat',step:0,steps:2});
+  M.task('t_local2b','Transferir catálogo','Local 2 - Electronica',-49,2,'uploaddata','long',{chain:'cat',step:0,steps:2});
   M.room('Local 3 - Libreria',-62,8,16,14,{floor:'#a2763f',wall:W,o:{e:[[12,5]]}});
   for(let i=0;i<3;i++) place(M,'bookshelf',-58+i*3.6,10,0,true,2.3,.6);
   M.task('t_local3','Clasificar libros','Local 3 - Libreria',-56,16,'sort','short');
@@ -4962,7 +4962,7 @@ function mapPlazaLagos(){
   for(let r=0;r<2;r++) for(let c=0;c<4;c++){ place(M,'desk',-42+c*5.5,-40+r*6,0,true,1.4,.8); place(M,'chair',-42+c*5.5,-38.8+r*6,Math.PI); }
   M.task('t_ofi_code','Abrir la caja fuerte','Oficinas',-24,-36,'keypad','short');
   M.task('t_ofi_wires','Reparar el cableado','Oficinas',-44,-42,'wires','short');
-  M.task('t_ofi_cat','Subir catalogo al servidor','Oficinas',-33,-42.6,'uploaddata','long',{chain:'cat',step:1,steps:2});
+  M.task('t_ofi_cat','Subir catálogo al servidor','Oficinas',-33,-42.6,'uploaddata','long',{chain:'cat',step:1,steps:2});
   M.vent('v_ofi','Oficinas',-44,-28,['v_mirador','v_mal']);
 
   /* parqueadero (sur-oeste) */
@@ -4972,12 +4972,12 @@ function mapPlazaLagos(){
   M.vent('v_parq','Parqueadero',-48,46,['v_mal','v_rest']);
 
   /* cuarto tecnico */
-  M.room('Cuarto Tecnico',20,-44,16,14,{floor:'#6f7783',wall:'#9aa3ad',o:{s:[[24,5]]}});
+  M.room('Cuarto Técnico',20,-44,16,14,{floor:'#6f7783',wall:'#9aa3ad',o:{s:[[24,5]]}});
   place(M,'reactor',28,-38,0,true,2.6,2.6);
   place(M,'wirepanel',21,-40,Math.PI/2,false);
-  M.task('t_tec_wires','Conectar cables del tablero','Cuarto Tecnico',21.8,-40,'wires','short');
-  M.task('t_tec_gen','Estabilizar el generador','Cuarto Tecnico',24,-42,'power','long',{chain:'gen',step:1,steps:2});
-  M.lightsRoom='Cuarto Tecnico'; M.lightsPos={x:32,z:-42};
+  M.task('t_tec_wires','Conectar cables del tablero','Cuarto Técnico',21.8,-40,'wires','short');
+  M.task('t_tec_gen','Estabilizar el generador','Cuarto Técnico',24,-42,'power','long',{chain:'gen',step:1,steps:2});
+  M.lightsRoom='Cuarto Técnico'; M.lightsPos={x:32,z:-42};
 
   /* conexiones peatonales */
   M.corridor('Paseo Norte',-20,-24,44,5,{floor:'#c6b99f',noCeil:true,open:'nswe'});
@@ -4986,15 +4986,15 @@ function mapPlazaLagos(){
   M.door('d_rest','restaurante',10,22,16,22);
   M.door('d_ofi','oficinas',-40,-26,-34,-26);
   M.door('d_tec','tecnico',24,-30,29,-30);
-  M.door('d_cafe2','cafe',-30,22,-24,22);
+  M.door('d_cafe2','café',-30,22,-24,22);
 
   M.cam('c1','Plaza Central',-14,3.0,-14,Math.PI*0.25);
-  M.cam('c2','Malecon',30,3.0,-30,Math.PI*0.9);
+  M.cam('c2','Malecón',30,3.0,-30,Math.PI*0.9);
   M.cam('c3','Promenade',-30,3.0,18,-Math.PI*0.9);
   M.cam('c4','Exedra',-16,3.0,34,-Math.PI*0.25);
 
-  M.repairPoint('r1','Valvula Norte',22,-30.5);
-  M.repairPoint('r2','Valvula Sur',-22,44);
+  M.repairPoint('r1','Válvula Norte',22,-30.5);
+  M.repairPoint('r2','Válvula Sur',-22,44);
   M.spawn={x:0,z:6};
   decoPlaza(M);
   return M.finalize();
@@ -5303,21 +5303,21 @@ function mapMira(){
   M.task('t_ves_lockers','Revisar los casilleros','Vestuarios',-20,25,'lockers','common');
   M.vent('v_ves','Vestuarios',-24,32,['v_med','v_dec']);
 
-  M.room('Enfermeria',6,20,18,14,{floor:'#9fb0bd',wall:'#e4ecf2',o:{w:[[26,6]]}});
+  M.room('Enfermería',6,20,18,14,{floor:'#9fb0bd',wall:'#e4ecf2',o:{w:[[26,6]]}});
   place(M,'stretcher',10,26,0,true,1.0,2.2); place(M,'scanner',18,26,0,true,1.8,1.8);
-  M.task('t_med_scan','Enviar muestra de ADN','Enfermeria',18,26,'medscan','common');
-  M.vent('v_med','Enfermeria',22,22,['v_ves','v_caf']);
+  M.task('t_med_scan','Enviar muestra de ADN','Enfermería',18,26,'medscan','common');
+  M.vent('v_med','Enfermería',22,22,['v_ves','v_caf']);
 
   M.corridor('Descontaminacion',-3,10,6,10,{floor:'#7f8b98',wall:'#a8b4c0',o:{n:[[-3,6]],s:[[-3,6]]}});
   M.door('d_dec1','descon',-3,10,3,10); M.door('d_dec2','descon',-3,20,3,20);
   M.task('t_dec_switch','Activar la ducha de descontaminacion','Descontaminacion',0,15,'switches','short');
   M.vent('v_dec','Descontaminacion',2,12,['v_ves','v_gre']);
 
-  M.room('Cafeteria',-14,-8,28,18,{floor:'#8a93a0',wall:W,o:{s:[[-3,6]],n:[[-4,8]],w:[[-2,6]],e:[[-2,6]]}});
+  M.room('Cafetería',-14,-8,28,18,{floor:'#8a93a0',wall:W,o:{s:[[-3,6]],n:[[-4,8]],w:[[-2,6]],e:[[-2,6]]}});
   for(let i=0;i<4;i++) place(M,'table',-8+i*6,0,0,true,2.0,1.1);
   M.emergency={x:0,z:2}; place(M,'embutton',0,2,0,true,1.1,1.1);
-  M.task('t_caf_clean','Limpiar las mesas','Cafeteria',-10,5,'clean','short');
-  M.vent('v_caf','Cafeteria',-12,-6,['v_med','v_bal']);
+  M.task('t_caf_clean','Limpiar las mesas','Cafetería',-10,5,'clean','short');
+  M.vent('v_caf','Cafetería',-12,-6,['v_med','v_bal']);
 
   M.room('Balcon',18,-12,20,16,{floor:'#7e8894',noCeil:true,open:'e',o:{w:[[-2,6]]}});
   for(let i=0;i<4;i++) place(M,'plant',22+i*4,-10);
@@ -5349,7 +5349,7 @@ function mapMira(){
   M.corridor('Pasillo Central',-36,8,20,6,{floor:F,wall:W,o:{w:[[8,6]],e:[[8,6]],n:[[-24,6]]}});
   M.room('Oficina',-16,2,18,16,{floor:'#8a93a0',wall:W,o:{w:[[8,6]],n:[[-12,6]]}});
   for(let i=0;i<4;i++){ place(M,'desk',-13+i*4,6,0,true,1.4,.8); place(M,'chair',-13+i*4,7.2,Math.PI); }
-  M.task('t_off_code','Introducir codigo','Oficina',-3,14,'keypad','short');
+  M.task('t_off_code','Introducir código','Oficina',-3,14,'keypad','short');
   M.task('t_off_up','Subir el informe','Oficina',-13,6,'uploaddata','long',{chain:'rep',step:1,steps:2});
   M.vent('v_off','Oficina',-14,16,['v_rea','v_bal','v_adm']);
 
@@ -5359,10 +5359,10 @@ function mapMira(){
   M.task('t_adm_down','Descargar el informe','Admin',19,-22,'uploaddata','long',{chain:'rep',step:0,steps:2});
   M.vent('v_adm','Admin',20,-28,['v_off']);
 
-  M.room('Almacen',26,4,18,16,{floor:'#8a93a0',wall:W,o:{w:[[8,6]]}});
+  M.room('Almacén',26,4,18,16,{floor:'#8a93a0',wall:W,o:{w:[[8,6]]}});
   for(let i=0;i<5;i++) place(M,'crate',29+i*2.2,8,0,true,1.1,1.1);
-  M.task('t_alm_fuel','Llenar el tanque','Almacen',34,16,'fuelpour','long',{chain:'fuel',step:1,steps:2});
-  M.lightsRoom='Almacen'; M.lightsPos={x:42,z:16};
+  M.task('t_alm_fuel','Llenar el tanque','Almacén',34,16,'fuelpour','long',{chain:'fuel',step:1,steps:2});
+  M.lightsRoom='Almacén'; M.lightsPos={x:42,z:16};
   M.corridor('Pasillo Este',14,8,12,6,{floor:F,wall:W,o:{w:[[8,6]],e:[[8,6]]}});
 
   M.room('Comunicaciones',26,-14,16,14,{floor:'#8a93a0',wall:W,o:{s:[[30,6]]}});
@@ -5373,7 +5373,7 @@ function mapMira(){
   M.door('d_off','oficina',-12,2,-6,2);
   M.door('d_lab','laboratorio',-36,-12,-36,-6);
 
-  M.cam('c1','Cafeteria',-13,2.6,-7,Math.PI*0.25);
+  M.cam('c1','Cafetería',-13,2.6,-7,Math.PI*0.25);
   M.cam('c2','Invernadero',-15,2.6,-29,Math.PI*0.25);
   M.cam('c3','Reactor',-55,2.6,5,Math.PI*0.25);
   M.cam('c4','Plataforma',-7,2.6,45,Math.PI*0.25);
@@ -5777,9 +5777,15 @@ const POLUS_MAP_DATA = {
   {"k":"shiprail","x":61.2,"z":35.19,"r":0,"solid":true,"s":1.3,"sx":1.3,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"emerglight","x":72.76,"z":25.5,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"emerglight","x":72.76,"z":32.3,"r":-1.571,"solid":false,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
-  {"k":"lavapool","x":45.9,"z":4.25,"r":0.0,"solid":false,"s":5.27,"sx":5.27,"sy":1.0,"sz":4.42,"y":0.03},
-  {"k":"lavapool","x":38.675,"z":4.25,"r":0.0,"solid":false,"s":1.19,"sx":1.19,"sy":1.0,"sz":2.21,"y":0.035},
-  {"k":"lavapool","x":54.825,"z":3.4,"r":0.0,"solid":false,"s":1.36,"sx":1.36,"sy":1.0,"sz":2.21,"y":0.035},
+  {"k":"lavapool","x":45.05,"z":3.4,"r":0.0,"solid":false,"s":3.8249999999999997,"sx":3.8249999999999997,"sy":1.0,"sz":3.4,"y":0.03},
+  {"k":"lavapool","x":36.55,"z":3.825,"r":0.0,"solid":false,"s":0.425,"sx":0.425,"sy":1.0,"sz":1.9124999999999999,"y":0.03},
+  {"k":"lavapool","x":54.825,"z":3.4,"r":0.0,"solid":false,"s":1.0625,"sx":1.0625,"sy":1.0,"sz":2.125,"y":0.03},
+  {"k":"lavapool","x":45.05,"z":-4.037,"r":0.0,"solid":false,"s":2.975,"sx":2.975,"sy":1.0,"sz":0.31875,"y":0.03},
+  {"k":"lavapool","x":45.9,"z":11.688,"r":0.0,"solid":false,"s":2.55,"sx":2.55,"sy":1.0,"sz":0.74375,"y":0.03},
+  {"k":"lavapool","x":37.188,"z":-1.275,"r":0.0,"solid":false,"s":0.53125,"sx":0.53125,"sy":1.0,"sz":0.6375,"y":0.03},
+  {"k":"lavapool","x":53.975,"z":-1.912,"r":0.0,"solid":false,"s":0.6375,"sx":0.6375,"sy":1.0,"sz":0.53125,"y":0.03},
+  {"k":"lavapool","x":53.975,"z":8.925,"r":0.0,"solid":false,"s":0.6375,"sx":0.6375,"sy":1.0,"sz":0.6375,"y":0.03},
+  {"k":"lavapool","x":39.525,"z":11.05,"r":0.0,"solid":false,"s":0.6375,"sx":0.6375,"sy":1.0,"sz":0.425,"y":0.03},
   {"k":"rock","x":37.4,"z":-5.44,"r":0.4,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
   {"k":"rock","x":51.85,"z":-6.29,"r":1.1,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
   {"k":"rock","x":58.31,"z":4.25,"r":2,"solid":true,"s":1.3,"sx":1.3,"sy":1.3,"sz":1.3,"y":0.0},
@@ -5802,13 +5808,13 @@ const POLUS_MAP_DATA = {
   {"k":"streetlamp","x":-1.7,"z":-26.01,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"streetlamp","x":6.29,"z":-22.1,"r":1.571,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"streetlamp","x":-52.19,"z":11.9,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
-  {"k":"streetlamp","x":-52.19,"z":27.2,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-52.19,"z":30.6,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"streetlamp","x":-52.19,"z":40.8,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
-  {"k":"streetlamp","x":-18.19,"z":1.7,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
-  {"k":"streetlamp","x":-18.19,"z":25.5,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-18.19,"z":5.1,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":-18.19,"z":28.9,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"streetlamp","x":-34.0,"z":48.11,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"streetlamp","x":-10.2,"z":48.11,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
-  {"k":"streetlamp","x":33.66,"z":18.7,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
+  {"k":"streetlamp","x":33.66,"z":14.45,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"streetlamp","x":25.5,"z":-6.29,"r":0,"solid":true,"s":1.0,"sx":1.0,"sy":1.0,"sz":1.0,"y":0.0},
   {"k":"rock","x":-71.4,"z":-45.9,"r":0.3,"solid":true,"s":2.4,"sx":2.4,"sy":2.4,"sz":2.4,"y":0.0},
   {"k":"rock","x":-59.5,"z":-57.8,"r":1,"solid":true,"s":2.0,"sx":2.0,"sy":2.0,"sz":2.0,"y":0.0},
@@ -5956,7 +5962,7 @@ const POLUS_MAP_DATA = {
  ],
  "cams":[
   {"name":"Cámara noroeste","x":-28.9,"z":-21.675,"yaw":-0.96,"yaw2":0.96},
-  {"name":"Cámara noreste","x":13.6,"z":-22.1,"yaw":-1.603,"yaw2":0.316},
+  {"name":"Cámara noreste","x":7.65,"z":-22.525,"yaw":-1.548,"yaw2":0.372},
   {"name":"Cámara central","x":-20.4,"z":0.0,"yaw":-0.098,"yaw2":1.822},
   {"name":"Cámara este","x":32.3,"z":20.4,"yaw":-0.175,"yaw2":1.745},
   {"name":"Cámara sur","x":-10.2,"z":25.5,"yaw":-1.34,"yaw2":0.579},
@@ -6086,10 +6092,10 @@ function decoMira(M){
 }
 
 const MAP_DEFS = [
-  { id:'skeld',    name:'THE SKELD',        desc:'Nave clasica',            build:mapSkeld },
-  { id:'mira',     name:'MIRA HQ',          desc:'Sede aerea',              build:mapMira },
-  { id:'polus',    name:'POLUS',            desc:'Base polar - exteriores', build:mapPolus },
-  { id:'plaza',    name:'PLAZA LAGOS',      desc:'Samborondon, Ecuador',    build:mapPlazaLagos },
+  { id:'skeld',    name:'THE SKELD',        desc:'Nave clásica',            build:mapSkeld },
+  { id:'mira',     name:'MIRA HQ',          desc:'Sede aérea',              build:mapMira },
+  { id:'polus',    name:'POLUS',            desc:'Base polar · nieve y lava', build:mapPolus },
+  { id:'plaza',    name:'PLAZA LAGOS',      desc:'Samborondón, Ecuador',    build:mapPlazaLagos },
   { id:'torremar', name:'COLEGIO TORREMAR', desc:'Campus escolar',          build:mapTorremar },
   { id:'custom',   name:'MAPA PERSONALIZADO', desc:'Creado con el editor',  build:()=>buildCustomMap(gameState.customMap), hidden:true }
 ];
@@ -6126,13 +6132,13 @@ const KILL_DIST = { corta:1.4, media:2.3, larga:3.3 };
 
 const SETTINGS_SCHEMA = [
  { g:'Jugadores', items:[
-   {k:'minPlayers', l:'Minimo de jugadores', t:'num', min:1, max:15},
-   {k:'maxPlayers', l:'Maximo de jugadores', t:'num', min:2, max:15},
+   {k:'minPlayers', l:'Mínimo de jugadores', t:'num', min:1, max:15},
+   {k:'maxPlayers', l:'Máximo de jugadores', t:'num', min:2, max:15},
    {k:'bots',       l:'Bots de relleno',     t:'num', min:0, max:10}
  ]},
  { g:'Impostores', items:[
-   {k:'impostors',     l:'Numero de Impostores', t:'num', min:1, max:3},
-   {k:'autoImpostors', l:'Seleccion automatica', t:'bool'}
+   {k:'impostors',     l:'Número de Impostores', t:'num', min:1, max:3},
+   {k:'autoImpostors', l:'Selección automática', t:'bool'}
  ]},
  { g:'Movimiento', items:[
    {k:'speed',     l:'Velocidad', t:'rng', min:0.5, max:3, step:0.05},
@@ -6148,13 +6154,13 @@ const SETTINGS_SCHEMA = [
  ]},
  { g:'Reuniones', items:[
    {k:'emergencies',       l:'Reuniones por jugador', t:'num', min:0, max:9},
-   {k:'emergencyCooldown', l:'Enfriamiento boton (s)', t:'rng', min:0, max:60, step:1}
+   {k:'emergencyCooldown', l:'Enfriamiento del botón (s)', t:'rng', min:0, max:60, step:1}
  ]},
- { g:'Votacion', items:[
-   {k:'discussTime',   l:'Tiempo de discusion (s)', t:'rng', min:0, max:120, step:5},
-   {k:'voteTime',      l:'Tiempo de votacion (s)',  t:'rng', min:15, max:300, step:5},
-   {k:'confirmEjects', l:'Confirmar expulsion', t:'bool'},
-   {k:'anonVotes',     l:'Votos anonimos', t:'bool'},
+ { g:'Votación', items:[
+   {k:'discussTime',   l:'Tiempo de discusión (s)', t:'rng', min:0, max:120, step:5},
+   {k:'voteTime',      l:'Tiempo de votación (s)',  t:'rng', min:15, max:300, step:5},
+   {k:'confirmEjects', l:'Confirmar expulsión', t:'bool'},
+   {k:'anonVotes',     l:'Votos anónimos', t:'bool'},
    {k:'allowSkip',     l:'Permitir saltar voto', t:'bool'}
  ]},
  { g:'Tareas', items:[
@@ -6164,8 +6170,8 @@ const SETTINGS_SCHEMA = [
  ]},
  { g:'Sabotajes', items:[
    {k:'sabotagesOn',  l:'Sabotajes activos', t:'bool'},
-   {k:'criticalTime', l:'Duracion sabotaje critico (s)', t:'rng', min:20, max:90, step:5},
-   {k:'doorTime',     l:'Duracion puertas cerradas (s)', t:'rng', min:5, max:30, step:1}
+   {k:'criticalTime', l:'Duración del sabotaje crítico (s)', t:'rng', min:20, max:90, step:5},
+   {k:'doorTime',     l:'Duración de puertas cerradas (s)', t:'rng', min:5, max:30, step:1}
  ]},
 ];
 
@@ -7233,7 +7239,7 @@ machine(api){
     draw(ctx){
       txt(ctx,'Etapa '+(stage+1)+' de 3',TCV_W/2,28,16,'#ffcc48');
       if(stage===0){
-        txt(ctx,'Gira la valvula dos vueltas',TCV_W/2,58,17,'#e8eef8');
+        txt(ctx,'Gira la válvula dos vueltas',TCV_W/2,58,17,'#e8eef8');
         ctx.save(); ctx.translate(310,190); ctx.rotate(ang);
         ctx.strokeStyle='#8d95a3'; ctx.lineWidth=16;
         ctx.beginPath(); ctx.arc(0,0,72,0,TAU); ctx.stroke();
@@ -8336,7 +8342,7 @@ const NetMgr = {
     });
     Net.peer.on('error', e=>{
       $('netErr').textContent = (e.type==='unavailable-id')
-        ? 'Ese codigo ya esta en uso, intenta de nuevo.' : 'Error de red: '+e.type;
+        ? 'Ese código ya está en uso, intenta de nuevo.' : 'Error de red: '+e.type;
       Net.isHost=false;
     });
   },
@@ -8412,7 +8418,7 @@ const Host = {
   map2id:{},
   onJoin(conn, info){
     const S=gameState.settings;
-    if(allPlayers().length >= S.maxPlayers){ conn.send({t:'deny', r:'La sala esta llena.'}); return; }
+    if(allPlayers().length >= S.maxPlayers){ conn.send({t:'deny', r:'La sala está llena.'}); return; }
     if(gameState.phase!=='lobby'){ conn.send({t:'deny', r:'La partida ya comenzo.'}); return; }
     const id='p'+(this.nextId++);
     this.map2id[conn.peer]=id;
@@ -8427,7 +8433,7 @@ const Host = {
     conn.send({t:'welcome', id, code:Net.code, settings:gameState.settings, map:gameState.map});
     if(gameState.customMap) conn.send({t:'cmap', data:gameState.customMap});
     this.pushLobby();
-    this.sys(p.name+' se unio a la sala.');
+    this.sys(p.name+' se unió a la sala.');
   },
   onLeave(peerId){
     const id=this.map2id[peerId]; if(!id) return;
@@ -8435,7 +8441,7 @@ const Host = {
     delete Net.conns[peerId]; delete this.map2id[peerId];
     if(!p) return;
     p.connected=false; p.alive=false;
-    this.sys(p.name+' se desconecto.');
+    this.sys(p.name+' se desconectó.');
     if(gameState.phase==='lobby'){ delete gameState.players[id]; this.pushLobby(); }
     else {
       /* las tareas que le faltaban dejan de contar: si no, la barra nunca llega al 100% */
@@ -8527,7 +8533,7 @@ const Guest = {
         $('netErr').textContent='';
         UI.enterLobby(d.code);
         break;
-      case 'deny': UI.fatal(d.r||'Conexion rechazada.'); break;
+      case 'deny': UI.fatal(d.r||'Conexión rechazada.'); break;
       case 'lobby':
         gameState.settings=d.settings; gameState.map=d.map;
         {
@@ -8646,8 +8652,9 @@ const Game = {
     gameState.guardiansLeft = S.ron_guardian ? clamp(S.rn_guardian|0,1,5) : 0;
     /* tareas */
     gameState.tasks={};
+    const commonPick=shuffle(this.M.taskSpots.filter(s=>!s.chain && s.kind==='common')).slice(0,S.commonTasks);
     for(const p of ps){
-      gameState.tasks[p.id] = (p.team==='crew') ? this.makeTasks() : this.makeTasks(true);
+      gameState.tasks[p.id] = (p.team==='crew') ? this.makeTasks(false, commonPick) : this.makeTasks(true, commonPick);
       if(p.team==='crew') gameState.totalTasks += gameState.tasks[p.id].reduce((a,t)=>a+t.steps,0);
     }
     gameState.phase='playing';
@@ -8665,7 +8672,7 @@ const Game = {
     }
     Audio2.meeting();
   },
-  makeTasks(fake){
+  makeTasks(fake, commonPick){
     const S=gameState.settings, M=this.M;
     const spots=M.taskSpots;
     const chains={};
@@ -8677,7 +8684,8 @@ const Game = {
     const longs   = Object.keys(chains);
     const out=[];
     const take=(arr,n)=>shuffle(arr.slice()).slice(0,n);
-    for(const s of take(commons, S.commonTasks))
+    /* las comunes son las mismas para todos en la partida (como en Among Us): asi se pueden comprobar */
+    for(const s of (commonPick || take(commons, S.commonTasks)))
       out.push({tid:s.id,name:s.name,type:s.type,kind:'common',room:s.room,steps:1,step:0,spots:[s.id],done:false});
     for(const s of take(shorts, S.shortTasks))
       out.push({tid:s.id,name:s.name,type:s.type,kind:'short',room:s.room,steps:1,step:0,spots:[s.id],done:false});
@@ -9178,7 +9186,7 @@ const Game = {
     const crew=ps.filter(p=>p.alive&&p.team==='crew').length;
     let winner=null, reason='';
     if(imp===0){ winner='crew'; reason='Todos los Impostores fueron expulsados.'; }
-    else if(imp>=crew){ winner='imp'; reason='Los Impostores alcanzaron la mayoria.'; }
+    else if(imp>=crew){ winner='imp'; reason='Los Impostores alcanzaron la mayoría.'; }
     else if(gameState.totalTasks>0 && gameState.doneTasks>=gameState.totalTasks){ winner='crew'; reason='Los Tripulantes completaron todas las tareas.'; }
     if(!winner) return false;
     this.hostEnd(winner,reason);
@@ -9358,9 +9366,9 @@ const Game = {
     if(gameState.sabotage){
       const st=gameState.sabotage.type;
       if((st==='critical'||st==='o2'||st==='reactor') && now>gameState.sabotage.until){
-        this.hostEnd('imp', st==='o2' ? 'El oxigeno se agoto.'
-                          : (st==='reactor' ? (this.M.reactorName ? this.M.reactorName+': no se estabilizaron a tiempo.' : 'El reactor se fundio.')
-                                            : 'El sabotaje critico no fue reparado a tiempo.'));
+        this.hostEnd('imp', st==='o2' ? 'El oxígeno se agotó.'
+                          : (st==='reactor' ? (this.M.reactorName ? this.M.reactorName+': no se estabilizaron a tiempo.' : 'El reactor se fundió.')
+                                            : 'El sabotaje crítico no fue reparado a tiempo.'));
         gameState.sabotage=null;
       } else if(st==='comms' && !gameState.sabotage.fix && now>gameState.sabotage.until){
         gameState.sabotage=null;
@@ -13005,7 +13013,7 @@ function buildCustomMap(raw, mapId){
   const tasks = d.tasks.length ? d.tasks : [
     {id:'cu_auto1', type:'wires', name:'Conectar cables', x:d.spawn.x-4, z:d.spawn.z+4, kind:'short'},
     {id:'cu_auto2', type:'clean', name:'Limpiar la zona', x:d.spawn.x+4, z:d.spawn.z+4, kind:'short'},
-    {id:'cu_auto3', type:'keypad', name:'Introducir codigo', x:d.spawn.x, z:d.spawn.z-5, kind:'common'} ];
+    {id:'cu_auto3', type:'keypad', name:'Introducir código', x:d.spawn.x, z:d.spawn.z-5, kind:'common'} ];
   const chainN={};
   for(const t of tasks) if(t.chain) chainN[t.chain]=(chainN[t.chain]||0)+1;
   for(const t of tasks){
@@ -13087,7 +13095,7 @@ const MapEditor = {
       vents:[ {id:'v1',name:'Cafetería',x:8,z:-6,links:['v2']}, {id:'v2',name:'Aula',x:7,z:28,links:['v1']} ],
       tasks:[ {id:'t1',type:'wires',name:'Conectar cables',x:-9.2,z:-2,kind:'short'},
               {id:'t2',type:'clean',name:'Limpiar la zona',x:6,z:26,kind:'short'},
-              {id:'t3',type:'keypad',name:'Introducir codigo',x:9.2,z:3,kind:'common'} ],
+              {id:'t3',type:'keypad',name:'Introducir código',x:9.2,z:3,kind:'common'} ],
       cams:[], repair:[{x:-7,z:27},{x:8,z:6}] };
   },
   /* ---------- abrir / cerrar ---------- */
