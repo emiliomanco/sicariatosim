@@ -3248,6 +3248,21 @@ function poseOf(anim){
     case 'dead':
       P.dead=true; P.armOutL=1.1; P.armOutR=-0.8; P.elbowL=-0.45; P.elbowR=-0.95;
       P.legOutL=0.3; P.legOutR=-0.16; P.kneeL=0.2; P.kneeR=0.65; break;
+    case 'lava': {                  /* expulsado a la lava de Polus: cae braceando y luego alza un brazo */
+      if(anim.fall){
+        P.armL=-2.4+Math.sin(t*14)*0.35; P.armR=-2.4-Math.sin(t*14)*0.35; P.armOutL=0.55; P.armOutR=-0.55;
+        P.elbowL=-0.3; P.elbowR=-0.3; P.legL=0.35; P.legR=-0.25; P.kneeL=0.5; P.kneeR=0.6; break;
+      }
+      const k=clamp(anim.k||0,0,1), e=k*k*(3-2*k);
+      P.armL=-3.0*e; P.armOutL=0.07+(anim.hand==='open'?0.2:0.08)*e; P.elbowL=-0.12*(1-e)-0.04*e;
+      P.armR=-0.45; P.armOutR=-0.4; P.elbowR=-0.7;                    /* el otro brazo queda bajo la lava */
+      if(anim.hand==='open'){                                          /* pide ayuda: agita la mano */
+        const w=Math.sin(t*8.5);
+        P.armOutL+=0.2*w*e; P.elbowL-=(0.16+0.12*Math.sin(t*8.5+1.2))*e; P.twistL=0.15*w*e;
+      }
+      P.bob=0.012*Math.sin(t*2.4);
+      break;
+    }
     default: { const b=Math.sin(t*1.7);
       P.bob=0.006*b; P.armL=0.03*b; P.armR=-0.03*b; P.elbowL=-0.14; P.elbowR=-0.14; }
   }
@@ -3290,13 +3305,44 @@ function drawCharacter(R, model, px,py,pz, yaw, anim, alpha, scale, tint){
   const aUL=_chain(body,  BODY.shoulderX, BODY.shoulderY, 0, P.armL, P.armOutL, P.twistL);
   const aUR=_chain(body, -BODY.shoulderX, BODY.shoulderY, 0, P.armR, P.armOutR, P.twistR);
   _part(R, S.armU, aUL, alpha, scale, tint); _part(R, S.armU, aUR, alpha, scale, tint);
-  _part(R, S.armL, _chain(aUL,0,-0.28,0,P.elbowL,0), alpha, scale, tint);
+  const fL=_chain(aUL,0,-0.28,0,P.elbowL,0);
+  _part(R, S.armL, fL, alpha, scale, tint);
   _part(R, S.armL, _chain(aUR,0,-0.28,0,P.elbowR,0), alpha, scale, tint);
+  if(anim.hand) _part(R, handGestureMesh(anim.hand, model.look), fL, alpha, scale, tint);
   const lUL=_chain(root,  0.095, BODY.hipY, 0, P.legL, P.legOutL);
   const lUR=_chain(root, -0.095, BODY.hipY, 0, P.legR, P.legOutR);
   _part(R, S.legU, lUL, alpha, scale, tint); _part(R, S.legU, lUR, alpha, scale, tint);
   _part(R, S.legL, _chain(lUL,0,-0.40,0,P.kneeL,0), alpha, scale, tint);
   _part(R, S.legL, _chain(lUR,0,-0.40,0,P.kneeR,0), alpha, scale, tint);
+}
+/* mano grande de caricatura para la expulsion en la lava:
+   'thumb' = puno con el pulgar arriba (impostor), 'open' = mano abierta pidiendo ayuda */
+const _handCache=new Map();
+function handGestureMesh(kind, look){
+  const skin=(look && look.skin) || '#e8bd93', key=kind+'|'+skin;
+  if(_handCache.has(key)) return _handCache.get(key);
+  const sk=shadeM(skin,0.92), skD=shadeM(skin,0.8);
+  const m=new Mesh();
+  if(kind==='thumb'){
+    m.merge(roundBoxMesh(0.2,0.15,0.16,0.045, sk), trsM(0.012,-0.275,0));                 // puno cerrado
+    for(let i=0;i<4;i++){                                                                   // dedos doblados (por delante y por detras)
+      const y=-0.215-i*0.035;
+      m.merge(roundBoxMesh(0.19,0.03,0.035,0.012, skD), trsM(0.02,y,0.075));
+      m.merge(roundBoxMesh(0.19,0.03,0.035,0.012, skD), trsM(0.02,y,-0.075));
+    }
+    m.merge(roundBoxMesh(0.064,0.17,0.07,0.028, sk), trsM(-0.062,-0.405,0));               // pulgar hacia arriba, al lado del puno
+    m.merge(boxMesh(0.05,0.03,0.074, skD), trsM(-0.062,-0.47,0));                          // una
+  } else {
+    m.merge(roundBoxMesh(0.16,0.15,0.07,0.03, sk), trsM(0,-0.27,0));                     // palma
+    for(let i=0;i<4;i++){
+      const x=-0.057+i*0.038, L=0.13-Math.abs(i-1.5)*0.018;
+      m.merge(roundBoxMesh(0.031,L,0.046,0.012, sk), trsM(x,-0.345-L/2,0, 0,0,(i-1.5)*0.09));
+    }
+    m.merge(roundBoxMesh(0.036,0.1,0.048,0.014, sk), trsM(0.1,-0.275,0, 0,0,0.95));       // pulgar abierto
+  }
+  m.fixWinding(); m.computeRadius(); m.vv=new Float64Array(m.v);
+  _handCache.set(key,m);
+  return m;
 }
 /* charco de sangre irregular */
 function bloodPoolMesh(seed){
@@ -5334,7 +5380,34 @@ const SKELD_MAP_DATA = {
   {"id":"cu_tmu6cso2o2qf","type":"garbagepull","name":"Soltar la basura","x":4.7,"z":60,"kind":"short","chain":null,"step":0},
   {"id":"cu_tmu6ct1lr744","type":"chartcourse","name":"Trazar la ruta","x":62.8,"z":18,"kind":"short","chain":null,"step":0},
   {"id":"cu_tmu6ctaph5jn","type":"sequence","name":"Encender el reactor","x":-81.9,"z":24.1,"kind":"short","chain":null,"step":0},
-  {"id":"cu_tmu6ctm7d6qp","type":"asteroids","name":"Despejar asteroides","x":33.2,"z":1.3,"kind":"short","chain":null,"step":0}
+  {"id":"cu_tmu6ctm7d6qp","type":"asteroids","name":"Despejar asteroides","x":33.2,"z":1.3,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tsk_ddcaf","type":"uploaddata","name":"Descargar los datos","x":13.9,"z":-10.6,"kind":"long","chain":"csk_datcaf","step":0},
+  {"id":"cu_tsk_upcaf","type":"uploaddata","name":"Subir los datos","x":12.3,"z":24.6,"kind":"long","chain":"csk_datcaf","step":1},
+  {"id":"cu_tsk_ddwea","type":"uploaddata","name":"Descargar los datos","x":33.8,"z":-5.4,"kind":"long","chain":"csk_datwea","step":0},
+  {"id":"cu_tsk_upwea","type":"uploaddata","name":"Subir los datos","x":12.3,"z":24.6,"kind":"long","chain":"csk_datwea","step":1},
+  {"id":"cu_tsk_ddnav","type":"uploaddata","name":"Descargar los datos","x":60.2,"z":13.6,"kind":"long","chain":"csk_datnav","step":0},
+  {"id":"cu_tsk_upnav","type":"uploaddata","name":"Subir los datos","x":12.3,"z":24.6,"kind":"long","chain":"csk_datnav","step":1},
+  {"id":"cu_tsk_ddcom","type":"uploaddata","name":"Descargar los datos","x":11.2,"z":48.8,"kind":"long","chain":"csk_datcom","step":0},
+  {"id":"cu_tsk_upcom","type":"uploaddata","name":"Subir los datos","x":12.3,"z":24.6,"kind":"long","chain":"csk_datcom","step":1},
+  {"id":"cu_tsk_ddele","type":"uploaddata","name":"Descargar los datos","x":-28.8,"z":30.0,"kind":"long","chain":"csk_datele","step":0},
+  {"id":"cu_tsk_upele","type":"uploaddata","name":"Subir los datos","x":12.3,"z":24.6,"kind":"long","chain":"csk_datele","step":1},
+  {"id":"cu_tsk_dpwea","type":"divertpower","name":"Desviar la energía a Weapons","x":-26.3,"z":30.0,"kind":"long","chain":"csk_powwea","step":0},
+  {"id":"cu_tsk_apwea","type":"acceptpower","name":"Aceptar la energía en Weapons","x":40.0,"z":-0.4,"kind":"long","chain":"csk_powwea","step":1},
+  {"id":"cu_tsk_dplow","type":"divertpower","name":"Desviar la energía al motor inferior","x":-26.3,"z":30.0,"kind":"long","chain":"csk_powlow","step":0},
+  {"id":"cu_tsk_aplow","type":"acceptpower","name":"Aceptar la energía en el motor inferior","x":-61.0,"z":37.3,"kind":"long","chain":"csk_powlow","step":1},
+  {"id":"cu_tsk_dpnav","type":"divertpower","name":"Desviar la energía a Navigation","x":-26.3,"z":30.0,"kind":"long","chain":"csk_pownav","step":0},
+  {"id":"cu_tsk_apnav","type":"acceptpower","name":"Aceptar la energía en Navigation","x":56.8,"z":11.2,"kind":"long","chain":"csk_pownav","step":1},
+  {"id":"cu_tsk_egcaf","type":"garbagepull","name":"Vaciar la basura","x":16.3,"z":-6.2,"kind":"long","chain":"csk_bascaf","step":0},
+  {"id":"cu_tsk_egcaf2","type":"chutedump","name":"Vaciar la basura","x":4.7,"z":60,"kind":"long","chain":"csk_bascaf","step":1},
+  {"id":"cu_tsk_ego2","type":"garbagepull","name":"Vaciar el conducto","x":18.6,"z":15.6,"kind":"long","chain":"csk_baso2","step":0},
+  {"id":"cu_tsk_ego22","type":"chutedump","name":"Vaciar el conducto","x":4.7,"z":60,"kind":"long","chain":"csk_baso2","step":1},
+  {"id":"cu_tsk_aeoup","type":"alignengine","name":"Alinear el motor superior","x":-65.4,"z":10.2,"kind":"long","chain":"csk_aeo","step":0},
+  {"id":"cu_tsk_aeolow","type":"alignengine","name":"Alinear el motor inferior","x":-65.4,"z":40.6,"kind":"long","chain":"csk_aeo","step":1},
+  {"id":"cu_tsk_um","type":"manifolds","name":"Desbloquear los colectores","x":-82.4,"z":11.5,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tsk_is","type":"inspectsample","name":"Inspeccionar la muestra","x":-17.2,"z":18.2,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tsk_cd","type":"calibrate","name":"Calibrar el distribuidor","x":-15.3,"z":30.0,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tsk_cof","type":"o2filter","name":"Limpiar el filtro de O2","x":23.2,"z":12.9,"kind":"short","chain":null,"step":0},
+  {"id":"cu_tsk_sst","type":"steering","name":"Estabilizar el timón","x":61.0,"z":20.9,"kind":"short","chain":null,"step":0}
  ],
  "cams":[
   {"name":"Cámara 1","x":46.5,"z":15.2,"yaw":-1.1344640137963142,"yaw2":1.0471975511965976},
@@ -6891,6 +6964,11 @@ const Audio2 = {
   },
   shh(){ this.noise(1.2, 0.12, 5200); },
   eject(){ this.tone(300,1.2,'sine',0.18,60); this.noise(1.4,0.10,400); },
+  /* Polus: silbido de la caida, chapuzon en la lava y chisporroteo (sin expulsado, solo burbujea) */
+  lavaEject(fall){
+    if(fall){ this.tone(820,0.8,'sine',0.12,160); this.noise(0.9,0.16,650,0.85); this.tone(140,0.45,'sine',0.2,45,0.85); }
+    this.noise(1.3,0.05,2200,fall?1.1:0.2);
+  },
   whoosh(){ this.noise(0.6,0.22,1400); },
   win(){ [523,659,784,1046,1318].forEach((f,i)=>this.tone(f,0.5,'triangle',0.2,null,i*0.14)); this.tone(261,1.4,'sine',0.25,null,0.1); },
   lose(){ [440,370,311,247].forEach((f,i)=>this.tone(f,0.55,'sawtooth',0.18,null,i*0.22)); this.tone(110,1.6,'sine',0.28,90,0.2); },
@@ -7562,6 +7640,14 @@ align(api){
    ===================================================================== */
 const AU_ROOMS = ['Reactor','Motor superior','Motor inferior','Seguridad','Comunicaciones',
                   'Oxígeno','Navegación','Escudos','Armería','Enfermería','Laboratorio','Oficina'];
+/* sala a la que va la energia segun el nombre de la tarea ("Desviar la energía a Weapons",
+   "Aceptar la energía en el motor inferior"); null si el nombre no la dice */
+function powerRoomOf(title){
+  const m=/energ[ií]a (?:desviada )?(?:a la|al|a|en el|en la|en) (.+)$/i.exec(String(title||'').trim());
+  if(!m) return null;
+  const s=m[1].trim().slice(0,18);
+  return s ? s[0].toUpperCase()+s.slice(1) : null;
+}
 /* delta de tiempo acotado (update recibe los segundos desde que se abrio) */
 function _dt(s,t){ const d=Math.max(0,Math.min(0.05,t-(s.lt===undefined?t:s.lt))); s.lt=t; return d; }
 /* estrellas de fondo para los minijuegos espaciales */
@@ -7757,7 +7843,7 @@ uploaddata(api){
 
 /* --- DESVIAR ENERGIA (Divert Power) ----------------------------------- */
 divertpower(api){
-  const S={}, room=AU_ROOMS[rndi(0,AU_ROOMS.length-1)];
+  const S={}, room=powerRoomOf(api.title) || AU_ROOMS[rndi(0,AU_ROOMS.length-1)];
   const X=310, Y0=78, H=192;
   let v=0, drag=false, fin=false;
   return {
@@ -7787,7 +7873,9 @@ divertpower(api){
 
 /* --- ACEPTAR LA ENERGIA DESVIADA (Accept Diverted Power) -------------- */
 acceptpower(api){
-  const names=shuffle(AU_ROOMS.slice()).slice(0,9), tgt=rndi(0,8);
+  const want=powerRoomOf(api.title);
+  const names=shuffle(AU_ROOMS.filter(n=>!want || n.toLowerCase()!==want.toLowerCase())).slice(0,9), tgt=rndi(0,8);
+  if(want) names[tgt]=want;
   const cells=[];
   for(let i=0;i<9;i++) cells.push({x:28+(i%3)*192, y:72+Math.floor(i/3)*78, on:false, n:names[i]});
   let fin=false;
@@ -12626,6 +12714,140 @@ function hexToRgbStr(h){ const c=hexRGB(h); return 'rgb('+c[0]+', '+c[1]+', '+c[
    SECCION 27b : CINEMATICAS ESTILO AMONG US
    (Shhh, revelacion de rol, reunion, asesinato, expulsion, victoria/derrota)
    ===================================================================== */
+/* ---- expulsion en Polus: al expulsado lo tiran al lago de lava ----
+   Fondo de roca morada con goteras, lava en tres franjas (roja, naranja y amarilla).
+   El personaje (3D) cae, salpica, se hunde hasta el cuello y alza la mano:
+   pulgar arriba si era impostor, mano abierta pidiendo ayuda si no lo era. */
+const LAVA_FALL = 0.85;                   /* segundo en que toca la lava */
+const LavaFX = {
+  cv:null, W:0, H:0,
+  rng(seed){ let s=seed|0||1; return ()=> (s=(s*16807)%2147483647)/2147483647; },
+  /* pared de la cueva (se dibuja una vez por tamano de pantalla) */
+  cave(W,H){
+    if(this.cv && this.W===W && this.H===H) return this.cv;
+    const cv=this.cv || document.createElement('canvas'); cv.width=W; cv.height=H; this.cv=cv; this.W=W; this.H=H;
+    const g=cv.getContext('2d'), rnd=this.rng(918273), U=H/1080, LW=Math.max(1.5,3.2*U), OUT='#2a1733';
+    g.lineJoin='round'; g.lineCap='round';
+    g.fillStyle='#8d6893'; g.fillRect(0,0,W,H*0.74);
+    /* goteras oscuras que cuelgan del techo (la roca clara queda como lenguas redondeadas) */
+    g.beginPath(); g.moveTo(-20,-20); g.lineTo(-20,70*U);
+    let x=-20;
+    while(x<W+20){
+      const w=(50+rnd()*85)*U, gap=(45+rnd()*110)*U, top=(95+rnd()*90)*U, len=(70+rnd()*300)*U;
+      g.quadraticCurveTo(x+gap*0.5, top-gap*(0.45+rnd()*0.35), x+gap, top);
+      const xl=x+gap, xr=xl+w, yb=top+len;
+      g.bezierCurveTo(xl+w*0.06, top+len*0.45, xl-w*0.1, yb-w*0.6, xl+w*0.5, yb);
+      g.bezierCurveTo(xr+w*0.1, yb-w*0.6, xr-w*0.06, top+len*0.45, xr, top);
+      x=xr;
+    }
+    g.lineTo(W+20,-20); g.closePath();
+    g.fillStyle='#644473'; g.fill(); g.strokeStyle=OUT; g.lineWidth=LW; g.stroke();
+    /* sombra suave hacia abajo */
+    const sh=g.createLinearGradient(0,H*0.2,0,H*0.66);
+    sh.addColorStop(0,'rgba(40,18,52,0)'); sh.addColorStop(1,'rgba(40,18,52,0.18)');
+    g.fillStyle=sh; g.fillRect(0,0,W,H*0.74);
+    /* agujeros y grietas en la roca */
+    for(let i=0;i<Math.round(W/(150*U));i++){
+      const hx=rnd()*W, hy=H*(0.3+rnd()*0.26), rx=(7+rnd()*11)*U, ry=rx*(1.5+rnd()*0.8);
+      g.beginPath(); g.ellipse(hx,hy,rx,ry,0,0,TAU); g.fillStyle='#644473'; g.fill(); g.lineWidth=LW*0.8; g.strokeStyle=OUT; g.stroke();
+    }
+    g.strokeStyle='#553a66'; g.lineWidth=Math.max(1,1.8*U);
+    for(let i=0;i<Math.round(W/(60*U));i++){
+      const cx=rnd()*W, cy=H*(0.18+rnd()*0.4), l=(10+rnd()*22)*U, a=Math.PI/2+(rnd()-0.5)*1.2;
+      g.beginPath(); g.moveTo(cx,cy); g.lineTo(cx+Math.cos(a)*l, cy+Math.sin(a)*l);
+      g.lineTo(cx+Math.cos(a+0.6)*l*1.6, cy+Math.sin(a+0.6)*l*1.6); g.stroke();
+    }
+    /* rocas redondas y claras al pie de la pared, medio metidas en la lava */
+    const rocks=[]; let rx=-30*U;
+    while(rx<W+30*U){ const w=(46+rnd()*80)*U; rocks.push({x:rx+w/2, w, h:(26+rnd()*26)*U, y:H*0.64-rnd()*12*U}); rx+=w*(0.72+rnd()*0.2); }
+    rocks.sort((a,b)=>a.y-b.y);
+    for(const r of rocks){
+      g.beginPath(); g.ellipse(r.x, r.y, r.w/2, r.h, 0, Math.PI, TAU); g.lineTo(r.x+r.w/2, r.y+r.h*0.6); g.lineTo(r.x-r.w/2, r.y+r.h*0.6); g.closePath();
+      g.fillStyle='#bc9ec2'; g.fill(); g.lineWidth=LW; g.strokeStyle=OUT; g.stroke();
+      g.beginPath(); g.ellipse(r.x-r.w*0.08, r.y-r.h*0.45, r.w*0.26, r.h*0.28, 0, 0, TAU); g.fillStyle='#d6c3db'; g.fill();
+      g.fillStyle='#efe6f2';
+      for(let k=0;k<3;k++){ g.beginPath(); g.arc(r.x+(rnd()-0.5)*r.w*0.6, r.y-r.h*(0.15+rnd()*0.6), (1.5+rnd()*2.2)*U, 0, TAU); g.fill(); }
+    }
+    return cv;
+  },
+  /* borde ondulado de una franja de lava */
+  wave(x,W,H,base,amp,t,sp,ph){
+    return H*base + H*amp*(Math.sin(x/W*TAU*2.6+t*sp+ph)*0.6 + Math.sin(x/W*TAU*6.1-t*sp*1.6+ph*1.7)*0.4);
+  },
+  band(g,W,H,t,base,amp,sp,ph,col,edge){
+    const n=48;
+    g.beginPath(); g.moveTo(0,H+2);
+    for(let i=0;i<=n;i++){ const x=i/n*W; g.lineTo(x, this.wave(x,W,H,base,amp,t,sp,ph)); }
+    g.lineTo(W,H+2); g.closePath(); g.fillStyle=col; g.fill();
+    if(edge){
+      g.beginPath();
+      for(let i=0;i<=n;i++){ const x=i/n*W, y=this.wave(x,W,H,base,amp,t,sp,ph); i?g.lineTo(x,y):g.moveTo(x,y); }
+      g.strokeStyle=edge; g.lineWidth=Math.max(1.5,4*H/1080); g.stroke();
+    }
+  },
+  /* burbujas que suben y revientan en la lava */
+  bubbles(g,W,H,t,front){
+    const U=H/1080, rnd=this.rng(front?5151:4242);
+    for(let i=0;i<(front?5:9);i++){
+      const x=rnd()*W, per=1.4+rnd()*1.6, ph=rnd()*per, y=H*(front?0.86+rnd()*0.1:0.66+rnd()*0.16), R=(6+rnd()*10)*U;
+      const u=((t+ph)%per)/per;
+      if(u<0.8){ const r=R*u/0.8;
+        g.beginPath(); g.arc(x,y,r,0,TAU); g.fillStyle=front?'#ffd65a':'#ff9a1f'; g.fill();
+        g.lineWidth=Math.max(1,1.6*U); g.strokeStyle=front?'#e89a10':'#d64a10'; g.stroke(); }
+      else { const k=(u-0.8)/0.2; g.beginPath(); g.arc(x,y,R*(1+k*0.8),0,TAU); g.strokeStyle='rgba(255,236,160,'+(1-k).toFixed(2)+')';
+        g.lineWidth=Math.max(1,2*U); g.stroke(); }
+    }
+  },
+  back(g,W,H,t){
+    g.drawImage(this.cave(W,H),0,0);
+    this.band(g,W,H,t,0.642,0.005,0.9,0.0,'#ff4014','#b3260f');
+    this.band(g,W,H,t,0.722,0.008,1.2,1.3,'#ff7f00');
+    this.band(g,W,H,t,0.852,0.007,1.0,2.1,'#fec722');
+    this.bubbles(g,W,H,t,false);
+  },
+  /* lava que tapa al personaje de la linea "cut" para abajo, salpicadura y ondas */
+  front(g,W,H,t,cut,cx,sinkEnd){
+    const U=H/1080, n=48;
+    g.beginPath(); g.moveTo(0,H+2);
+    for(let i=0;i<=n;i++){ const x=i/n*W; g.lineTo(x, cut+H*0.004*Math.sin(x/W*TAU*3+t*2.2)); }
+    g.lineTo(W,H+2); g.closePath(); g.fillStyle='#ff7f00'; g.fill();
+    this.band(g,W,H,t,0.852,0.007,1.0,2.1,'#fec722');
+    this.bubbles(g,W,H,t,true);
+    const dt = sinkEnd===null ? -1 : t-LAVA_FALL;          /* sin expulsado no hay salpicadura */
+    if(dt>0 && dt<1.4){                                    /* ondas donde cayo */
+      for(const off of [0,0.35]){ const k=(dt-off)/1.0; if(k<0||k>1) continue;
+        g.beginPath(); g.ellipse(cx, cut, (40+260*k)*U, (8+40*k)*U, 0, 0, TAU);
+        g.strokeStyle='rgba(255,226,120,'+(0.8*(1-k)).toFixed(2)+')'; g.lineWidth=Math.max(1.5,5*U*(1-k)+1); g.stroke(); }
+    }
+    if(dt>0 && dt<1.2){                                    /* salpicadura de gotas de lava */
+      const rnd=this.rng(777);
+      for(let i=0;i<18;i++){
+        const a=-Math.PI/2+(rnd()-0.5)*2.2, v=(0.45+rnd()*0.55)*H, r=(6+rnd()*9)*U;
+        const x=cx+Math.cos(a)*v*dt*0.9, y=cut+Math.sin(a)*v*dt+0.5*1.9*H*dt*dt;
+        if(y>cut+r) continue;
+        g.beginPath(); g.arc(x,y,r,0,TAU); g.fillStyle=['#ff7f00','#fec722','#ff4014'][i%3]; g.fill();
+        g.lineWidth=Math.max(1,2*U); g.strokeStyle='#8a2208'; g.stroke();
+      }
+    }
+    if(sinkEnd!==null && t>sinkEnd && t<sinkEnd+0.8){      /* burbuja final cuando se hunde del todo */
+      const k=(t-sinkEnd)/0.8, r=(10+30*k)*U;
+      g.beginPath(); g.arc(cx, cut-r*0.3, r, Math.PI, TAU);
+      if(k<0.75){ g.fillStyle='#ff9a1f'; g.fill(); g.lineWidth=Math.max(1,2.5*U); g.strokeStyle='#c2400c'; g.stroke(); }
+      else { g.strokeStyle='rgba(255,236,160,'+((1-k)*4).toFixed(2)+')'; g.lineWidth=Math.max(1,3*U); g.stroke(); }
+    }
+  },
+  /* movimiento del expulsado: altura (0 = superficie de la lava), giro y brazo en alto */
+  motion(t, gesture){
+    let y, roll=0, yaw=0, k=0, fall=false;
+    if(t<LAVA_FALL){ const u=t/LAVA_FALL; y=3.4-(3.4+0.95)*u*u; roll=2.3*(1-u)*(1-u); yaw=0.9*(1-u); fall=true; }
+    else if(t<1.25){ const u=(t-LAVA_FALL)/(1.25-LAVA_FALL); y=-0.95-0.8*Math.sin(u*Math.PI/2); }
+    else if(t<1.7){ const u=(t-1.25)/0.45; y=-1.75+0.33*(1-(1-u)*(1-u)); }
+    else if(t<3.1) y=-1.42+Math.sin((t-1.7)*2.6)*0.025;
+    else { const u=Math.min(1,(t-3.1)/0.85); y=-1.42+Math.sin(1.4*2.6)*0.025-1.2*u*u; }
+    if(gesture) k=clamp((t-1.35)/0.55,0,1);
+    return { y, roll, yaw, k, fall };
+  }
+};
 const Cine = {
   cv:null, R:null, cam:new Camera(), mode:null, t0:0, dur:0, data:null, onEnd:null, stars:null, flags:{},
   init(){ this.cv=$('cineCv'); this.R=makeRenderer(this.cv,{alpha:true}); },
@@ -12646,7 +12868,8 @@ const Cine = {
   intro(d, cb){ this.play('intro', d, INTRO_SECS, cb); Audio2.shh(); },
   meeting(d, cb){ this.play('meeting', d, MEETING_SPLASH, cb); if(d.victim) Audio2.report(); else Audio2.emergency(); },
   kill(killer, victim){ this.play('kill', {killer, victim}, 1.9, null); Audio2.kill(); },
-  eject(d){ this.play('eject', d, (EJECT_MS-2300)/1000 - 0.1, null); Audio2.eject(); },
+  eject(d){ this.play('eject', d, (EJECT_MS-2300)/1000 - 0.1, null);
+            if(gameState.map==='polus') Audio2.lavaEject(!!d.ejected); else Audio2.eject(); },
   end(d){ this.play('end', d, 0, null); },
   /* fila de personajes (el primero al frente y al centro) */
   lineup(list, animFor, glow){
@@ -12679,6 +12902,30 @@ const Cine = {
       ctx.globalAlpha=0.3+s.z*0.7; ctx.fillStyle='#fff'; ctx.fillRect(x,y,r,r);
     }
     ctx.globalAlpha=1;
+  },
+  /* expulsion en Polus: roca y lava en 2D, el expulsado en 3D entre las dos capas de lava */
+  lavaEject(t, d, ej){
+    const R2=this.R, ctx=R2.ctx, W=R2.W, H=R2.H;
+    const c=this.cam; c.fov=40*DEG; c.near=0.05; c.x=0; c.z=4.1; c.yaw=Math.PI; c.pitch=0;
+    c.y=0.3*2*Math.tan(c.fov/2)*c.z;                  /* la superficie de la lava (y=0) queda al 80% del alto */
+    R2.fogOn=false; R2.ambient=0.64; R2.diffuse=0.5; R2.fill=0.3; R2.minPx=0.3;
+    R2.light=new Vector3(0.2,-0.7,-0.7).norm();
+    R2.begin(c,null);
+    ctx.setTransform(1,0,0,1,0,0);
+    LavaFX.back(ctx,W,H,t);
+    const pc=R2.project(0,0,0), cut=pc?pc.y:H*0.8, cx=pc?pc.x:W/2;
+    let sinkEnd=null;
+    if(ej){
+      const gesture = d.confirm ? (d.wasImp ? 'thumb' : 'open') : null;   /* sin confirmar expulsiones no se delata */
+      const m=LavaFX.motion(t, gesture);
+      resetPool();
+      drawCharacter(R2, buildCharacter(ej.look,ej.color,false,false), 0, m.y, 0, m.yaw,
+        {state:'lava', t, k:m.k, fall:m.fall, roll:m.roll, hand:gesture && m.k>0 ? gesture : null}, 1, 1, [255,120,40,0.12]);
+      R2.flush();
+      sinkEnd=3.72;
+    }
+    ctx.setTransform(1,0,0,1,0,0);
+    LavaFX.front(ctx,W,H,t,cut,cx,sinkEnd);
   },
   bigText(txt, x, y, size, fill, stroke){
     const ctx=this.R.ctx;
@@ -12775,7 +13022,9 @@ const Cine = {
       }
       case 'eject': {
         const ej=d.ejected ? gameState.players[d.ejected] : null;
-        if(!ej){ ctx.setTransform(1,0,0,1,0,0); this.drawStars(t, 0.05); }
+        const lava = gameState.map==='polus';
+        if(lava) this.lavaEject(t, d, ej);
+        else if(!ej){ ctx.setTransform(1,0,0,1,0,0); this.drawStars(t, 0.05); }
         else {
           const c=this.cam; c.fov=40*DEG; c.near=0.05; c.x=0; c.y=0.9; c.z=9; c.yaw=Math.PI; c.pitch=0;
           R2.fogOn=false; R2.ambient=0.6; R2.diffuse=0.5; R2.fill=0.3; R2.minPx=0.3;
@@ -12794,7 +13043,7 @@ const Cine = {
         const chars=Math.floor(clamp((t-0.6)*22,0,main.length));
         const shown=main.slice(0,chars);
         const bt=$('cineBottom');
-        $('cineTxt').style.top='44%';
+        $('cineTxt').style.top = lava ? '40%' : '44%';
         const tt=$('cineTitle');
         if(tt.textContent!==shown){ tt.textContent=shown; tt.style.fontSize='clamp(22px,3.6vw,48px)'; tt.style.color='#fff'; tt.style.textShadow='0 3px 0 #000'; }
         const subShown = chars>=main.length && t>0.6+main.length/22+0.4 ? sub : '';

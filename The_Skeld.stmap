@@ -3902,6 +3902,276 @@
    "kind": "short",
    "chain": null,
    "step": 0
+  },
+  {
+   "id": "cu_tsk_ddcaf",
+   "type": "uploaddata",
+   "name": "Descargar los datos",
+   "x": 13.9,
+   "z": -10.6,
+   "kind": "long",
+   "chain": "csk_datcaf",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_upcaf",
+   "type": "uploaddata",
+   "name": "Subir los datos",
+   "x": 12.3,
+   "z": 24.6,
+   "kind": "long",
+   "chain": "csk_datcaf",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_ddwea",
+   "type": "uploaddata",
+   "name": "Descargar los datos",
+   "x": 33.8,
+   "z": -5.4,
+   "kind": "long",
+   "chain": "csk_datwea",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_upwea",
+   "type": "uploaddata",
+   "name": "Subir los datos",
+   "x": 12.3,
+   "z": 24.6,
+   "kind": "long",
+   "chain": "csk_datwea",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_ddnav",
+   "type": "uploaddata",
+   "name": "Descargar los datos",
+   "x": 60.2,
+   "z": 13.6,
+   "kind": "long",
+   "chain": "csk_datnav",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_upnav",
+   "type": "uploaddata",
+   "name": "Subir los datos",
+   "x": 12.3,
+   "z": 24.6,
+   "kind": "long",
+   "chain": "csk_datnav",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_ddcom",
+   "type": "uploaddata",
+   "name": "Descargar los datos",
+   "x": 11.2,
+   "z": 48.8,
+   "kind": "long",
+   "chain": "csk_datcom",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_upcom",
+   "type": "uploaddata",
+   "name": "Subir los datos",
+   "x": 12.3,
+   "z": 24.6,
+   "kind": "long",
+   "chain": "csk_datcom",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_ddele",
+   "type": "uploaddata",
+   "name": "Descargar los datos",
+   "x": -28.8,
+   "z": 30.0,
+   "kind": "long",
+   "chain": "csk_datele",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_upele",
+   "type": "uploaddata",
+   "name": "Subir los datos",
+   "x": 12.3,
+   "z": 24.6,
+   "kind": "long",
+   "chain": "csk_datele",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_dpwea",
+   "type": "divertpower",
+   "name": "Desviar la energía a Weapons",
+   "x": -26.3,
+   "z": 30.0,
+   "kind": "long",
+   "chain": "csk_powwea",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_apwea",
+   "type": "acceptpower",
+   "name": "Aceptar la energía en Weapons",
+   "x": 40.0,
+   "z": -0.4,
+   "kind": "long",
+   "chain": "csk_powwea",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_dplow",
+   "type": "divertpower",
+   "name": "Desviar la energía al motor inferior",
+   "x": -26.3,
+   "z": 30.0,
+   "kind": "long",
+   "chain": "csk_powlow",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_aplow",
+   "type": "acceptpower",
+   "name": "Aceptar la energía en el motor inferior",
+   "x": -61.0,
+   "z": 37.3,
+   "kind": "long",
+   "chain": "csk_powlow",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_dpnav",
+   "type": "divertpower",
+   "name": "Desviar la energía a Navigation",
+   "x": -26.3,
+   "z": 30.0,
+   "kind": "long",
+   "chain": "csk_pownav",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_apnav",
+   "type": "acceptpower",
+   "name": "Aceptar la energía en Navigation",
+   "x": 56.8,
+   "z": 11.2,
+   "kind": "long",
+   "chain": "csk_pownav",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_egcaf",
+   "type": "garbagepull",
+   "name": "Vaciar la basura",
+   "x": 16.3,
+   "z": -6.2,
+   "kind": "long",
+   "chain": "csk_bascaf",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_egcaf2",
+   "type": "chutedump",
+   "name": "Vaciar la basura",
+   "x": 4.7,
+   "z": 60,
+   "kind": "long",
+   "chain": "csk_bascaf",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_ego2",
+   "type": "garbagepull",
+   "name": "Vaciar el conducto",
+   "x": 18.6,
+   "z": 15.6,
+   "kind": "long",
+   "chain": "csk_baso2",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_ego22",
+   "type": "chutedump",
+   "name": "Vaciar el conducto",
+   "x": 4.7,
+   "z": 60,
+   "kind": "long",
+   "chain": "csk_baso2",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_aeoup",
+   "type": "alignengine",
+   "name": "Alinear el motor superior",
+   "x": -65.4,
+   "z": 10.2,
+   "kind": "long",
+   "chain": "csk_aeo",
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_aeolow",
+   "type": "alignengine",
+   "name": "Alinear el motor inferior",
+   "x": -65.4,
+   "z": 40.6,
+   "kind": "long",
+   "chain": "csk_aeo",
+   "step": 1
+  },
+  {
+   "id": "cu_tsk_um",
+   "type": "manifolds",
+   "name": "Desbloquear los colectores",
+   "x": -82.4,
+   "z": 11.5,
+   "kind": "short",
+   "chain": null,
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_is",
+   "type": "inspectsample",
+   "name": "Inspeccionar la muestra",
+   "x": -17.2,
+   "z": 18.2,
+   "kind": "short",
+   "chain": null,
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_cd",
+   "type": "calibrate",
+   "name": "Calibrar el distribuidor",
+   "x": -15.3,
+   "z": 30.0,
+   "kind": "short",
+   "chain": null,
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_cof",
+   "type": "o2filter",
+   "name": "Limpiar el filtro de O2",
+   "x": 23.2,
+   "z": 12.9,
+   "kind": "short",
+   "chain": null,
+   "step": 0
+  },
+  {
+   "id": "cu_tsk_sst",
+   "type": "steering",
+   "name": "Estabilizar el timón",
+   "x": 61.0,
+   "z": 20.9,
+   "kind": "short",
+   "chain": null,
+   "step": 0
   }
  ],
  "cams": [
