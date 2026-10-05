@@ -6705,6 +6705,23 @@ function me(){ return gameState.players[Net.myId]; }
 function isImpostor(p){ return p && p.team==='imp'; }
 function alivePlayers(){ return Object.values(gameState.players).filter(p=>p.alive&&p.connected); }
 function allPlayers(){ return Object.values(gameState.players).filter(p=>p.connected); }
+/* para comparar nombres sin mayusculas, tildes ni espacios de mas ("José " es lo mismo que "jose") */
+function nameKey(n){ return String(n||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\s+/g,' ').trim(); }
+/* persona (no bot) conectada que ya usa ese nombre */
+function nameTaken(name, exceptId){
+  const k=nameKey(name);
+  return allPlayers().find(q=>q.id!==exceptId && !q.bot && nameKey(q.name)===k) || null;
+}
+/* latidos: cada invitado avisa que sigue ahi; si se calla demasiado, el host lo saca
+   (una conexion que se cae sin aviso dejaba un "clon" que nunca votaba) */
+const HB_EVERY = 2, HB_TIMEOUT = 20, HB_STALE = 5;
+/* identifica a esta pestana aunque se recargue: al volver a entrar reemplaza su registro viejo */
+function clientToken(){
+  try{ let t=sessionStorage.getItem('sicsim.tok');
+       if(!t){ t=Math.random().toString(36).slice(2,12)+Date.now().toString(36).slice(-4); sessionStorage.setItem('sicsim.tok',t); }
+       return t; }
+  catch(e){ return Net._tok || (Net._tok=Math.random().toString(36).slice(2,14)); }
+}
 
 /* =====================================================================
    SECCION 11 : COLISIONES 3D
@@ -8594,6 +8611,7 @@ const NetMgr = {
       $('netErr').textContent='';
       this._hostState();
       UI.enterLobby(code);
+      clearInterval(Net.wdTimer); Net.wdTimer=setInterval(()=>Host.watchdog(), 2000);
     });
     Net.peer.on('connection', conn=>{
       conn.on('open', ()=>{ Net.conns[conn.peer]=conn; });
@@ -8623,7 +8641,9 @@ const NetMgr = {
       Net.hostConn=conn;
       conn.on('open', ()=>{
         settled=true; clearTimeout(failTimer);
-        conn.send({t:'join', p:{name:Local.name,color:Local.color,look:Local.look}});
+        conn.send({t:'join', p:{name:Local.name,color:Local.color,look:Local.look,tok:clientToken(),hb:1}});
+        clearInterval(Net.hbTimer);
+        Net.hbTimer=setInterval(()=>{ const c=Net.hostConn; if(c && c.open){ try{ c.send({t:'hb'}); }catch(e){} } }, HB_EVERY*1000);
       });
       conn.on('data', d=>Guest.onData(d));
       conn.on('close', ()=>{ if(gameState.phase!=='menu') UI.fatal('Se perdió la conexión con el Host.'); });
@@ -8652,7 +8672,9 @@ const NetMgr = {
     if(pid==='host'){ Guest.onData(msg); return; }
     const c=Net.conns[pid]; if(c&&c.open){ try{ c.send(msg); }catch(e){} }
   },
+  stopTimers(){ clearInterval(Net.hbTimer); clearInterval(Net.wdTimer); Net.hbTimer=Net.wdTimer=0; },
   leave(){
+    this.stopTimers();
     try{ if(Net.peer) Net.peer.destroy(); }catch(e){}
     Net.peer=null; Net.conns={}; Net.hostConn=null; Net.isHost=false; Net.myId=null; Net.offline=false;
     Host.map2id={};
@@ -8667,8 +8689,13 @@ const Host = {
   nextId:1,
   onData(conn, d, fromSelf){
     const pid = fromSelf || (conn ? conn.peer : null);
-    if(!pid) return;
+    if(!pid || !d) return;
+    if(pid!=='host'){
+      const q=gameState.players[this.map2id[pid]];
+      if(q){ q.lastSeen=performance.now(); if(d.t==='hb') q.hb=true; }
+    }
     switch(d.t){
+      case 'hb': break;
       case 'join': this.onJoin(conn, d.p); break;
       case 'pos':  this.onPos(this.idOf(pid), d); break;
       case 'chat': this.onChat(this.idOf(pid), d.m); break;
@@ -8679,15 +8706,30 @@ const Host = {
   map2id:{},
   onJoin(conn, info){
     const S=gameState.settings;
+    if(this.map2id[conn.peer]) return;                         /* la misma conexion no entra dos veces */
+    if(gameState.phase!=='lobby'){ conn.send({t:'deny', r:'La partida ya comenzó.'}); return; }
+    info = (info && typeof info==='object') ? info : {};
+    const tok = typeof info.tok==='string' ? info.tok.replace(/[^a-zA-Z0-9]/g,'').slice(0,24) : '';
+    const name = String(info.name||'').trim().slice(0,12) || 'Jugador';
+    /* vuelve a entrar alguien que ya estaba (misma pestana, o su conexion vieja ya no responde):
+       se saca su registro viejo en vez de dejar un clon que nunca vota */
+    const now=performance.now();
+    for(const q of allPlayers()){
+      if(q.bot || q.id==='host' || !q.peerId) continue;
+      const same = tok && q.tok===tok;
+      const deadTwin = nameKey(q.name)===nameKey(name) && now-(q.lastSeen||0) > HB_STALE*1000;
+      if(same || deadTwin) this.drop(q.peerId, null, true);
+    }
+    const clash=nameTaken(name);
+    if(clash){ conn.send({t:'deny', r:'Ya hay alguien llamado «'+clash.name+'» en la sala. Cámbiate el nombre y vuelve a entrar '+
+                               '(si eras tú y se te cortó la conexión, espera unos segundos y vuelve a intentarlo).'}); return; }
     if(allPlayers().length >= S.maxPlayers){ conn.send({t:'deny', r:'La sala está llena.'}); return; }
-    if(gameState.phase!=='lobby'){ conn.send({t:'deny', r:'La partida ya comenzo.'}); return; }
     const id='p'+(this.nextId++);
     this.map2id[conn.peer]=id;
-    info = (info && typeof info==='object') ? info : {};
     const used = allPlayers().map(p=>p.color);
     let col=sanitizeColor(info.color); if(used.indexOf(col)>=0){ const free=COLORS.map(c=>c.hex).filter(c=>used.indexOf(c)<0); if(free.length) col=free[0]; }
-    const p=newPlayerState(id, String(info.name||'Jugador').slice(0,12), col, info.look, false);
-    p.peerId=conn.peer;
+    const p=newPlayerState(id, name, col, info.look, false);
+    p.peerId=conn.peer; p.tok=tok; p.lastSeen=now; p.hb=!!info.hb;
     const M=Game.M||mapLobby();
     { const sp=spawnSpot(M, 0, 0); p.x=sp.x; p.z=sp.z; p.yaw=sp.yaw; }
     gameState.players[id]=p;
@@ -8696,13 +8738,13 @@ const Host = {
     this.pushLobby();
     this.sys(p.name+' se unió a la sala.');
   },
-  onLeave(peerId){
+  onLeave(peerId, quiet){
     const id=this.map2id[peerId]; if(!id) return;
     const p=gameState.players[id];
     delete Net.conns[peerId]; delete this.map2id[peerId];
     if(!p) return;
     p.connected=false; p.alive=false;
-    this.sys(p.name+' se desconectó.');
+    if(!quiet) this.sys(p.name+' se desconectó.');
     if(gameState.phase==='lobby'){ delete gameState.players[id]; this.pushLobby(); }
     else {
       /* las tareas que le faltaban dejan de contar: si no, la barra nunca llega al 100% */
@@ -8727,6 +8769,28 @@ const Host = {
     }
   },
   sys(m){ NetMgr.bcast({t:'sys',m}); UI.sysMsg(m); },
+  /* saca a un jugador: le avisa el motivo (si hay), cierra su conexion y lo da por desconectado */
+  drop(peerId, reason, quiet){
+    const c=Net.conns[peerId];
+    if(c){ try{ if(reason) c.send({t:'deny', r:reason}); }catch(e){} setTimeout(()=>{ try{ c.close(); }catch(e){} }, 400); }
+    this.onLeave(peerId, quiet);
+  },
+  /* quien deja de mandar latidos se da por desconectado (asi no se espera su voto ni sigue en la sala) */
+  watchdog(){
+    if(!Net.isHost || Net.offline) return;
+    const now=performance.now();
+    for(const p of allPlayers()){
+      if(p.bot || p.id==='host' || !p.peerId || !p.hb) continue;      /* solo a quien manda latidos */
+      if(now-(p.lastSeen||now) > HB_TIMEOUT*1000)
+        this.drop(p.peerId, 'Se perdió tu conexión con la sala (sin respuesta durante '+HB_TIMEOUT+' s).');
+    }
+  },
+  /* aviso privado a un jugador */
+  warn(p, m, extra){
+    if(p.id==='host'){ toast(m,'#ff8a96',2800); UI.sysMsg(m); return; }
+    const c=p.peerId && Net.conns[p.peerId];
+    if(c){ try{ c.send(Object.assign({t:'warn', m}, extra||{})); }catch(e){} }
+  },
   pushLobby(){
     const ps=allPlayers().map(p=>({id:p.id,name:p.name,color:p.color,look:p.look,host:p.host,bot:p.bot}));
     NetMgr.bcast({t:'lobby', players:ps, settings:gameState.settings, map:gameState.map});
@@ -8775,7 +8839,10 @@ const Host = {
                          const taken=allPlayers().some(q=>q.id!==p.id && q.color===want);
                          if(!taken) p.color=want;
                          p.look=sanitizeLook(d.look);
-                         p.name=String(d.name||p.name).slice(0,12);
+                         const nm=String(d.name||'').trim().slice(0,12) || p.name;
+                         if(nameKey(nm)!==nameKey(p.name) && nameTaken(nm, p.id))
+                           Host.warn(p, 'El nombre «'+nm+'» ya lo usa otro jugador.', {name:p.name});
+                         else p.name=nm;
                          Host.pushLobby(); } break;
       case 'setting':  if(p.host){ Game.hostSetSetting(d.k,d.v); } break;
       case 'start':    if(p.host){ Game.hostStart(); } break;
@@ -8821,6 +8888,8 @@ const Guest = {
       case 'ev':   Game.clientEvent(d); break;
       case 'chat': UI.chatIn(d); break;
       case 'sys':  UI.sysMsg(d.m); break;
+      case 'warn': toast(String(d.m||''),'#ff8a96',2800); UI.sysMsg(String(d.m||''));
+                   if(typeof d.name==='string' && d.name){ Local.name=d.name.slice(0,12); Profile.save(); } break;
     }
   }
 };
@@ -8856,12 +8925,12 @@ const Game = {
     const real=allPlayers().filter(p=>!p.bot);
     /* bots de relleno */
     for(const p of Object.values(gameState.players)) if(p.bot) delete gameState.players[p.id];
-    const botNames=shuffle(BOT_NAMES.filter(n=>!allPlayers().some(q=>q.name===n)));
+    const botNames=shuffle(BOT_NAMES.filter(n=>!allPlayers().some(q=>nameKey(q.name)===nameKey(n))));
     for(let i=0;i<S.bots;i++){
       const id='b'+i;
       const used=allPlayers().map(q=>q.color);
       const free=shuffle(COLORS.map(c=>c.hex).filter(c=>used.indexOf(c)<0));
-      const b=newPlayerState(id, botNames[i%botNames.length]||('BOT-'+(i+1)), free.length?free[0]:pick(COLORS).hex,
+      const b=newPlayerState(id, botNames[i]||('Bot '+(i+1)), free.length?free[0]:pick(COLORS).hex,
         randomLook(), false);
       b.bot=true; gameState.players[id]=b;
     }
@@ -11848,6 +11917,10 @@ const UI = {
   },
   pushMe(){
     const mp=me(); if(!mp) return;
+    if(Net.isHost && nameKey(Local.name)!==nameKey(mp.name) && nameTaken(Local.name, mp.id)){
+      toast('El nombre «'+Local.name+'» ya lo usa otro jugador.','#ff8a96',2800);
+      Local.name=mp.name; Profile.save();
+    }
     mp.color=Local.color; mp.look=Local.look; mp.name=Local.name;
     if(Net.isHost) Host.pushLobby();
     else NetMgr.toHost({t:'act',a:'look',color:Local.color,look:Local.look,name:Local.name});
@@ -11996,6 +12069,7 @@ const UI = {
     Local.inCams=false; Local.mapOpen=false; Local.sabOpen=false; Local.chatOpen=false;
     Mouse.unlock();
     gameState.phase='menu';
+    NetMgr.stopTimers();
     try{ if(Net.peer) Net.peer.destroy(); }catch(e){}
     Net.peer=null; Net.conns={}; Net.hostConn=null; Net.offline=false;
     $('connStat').textContent='';
@@ -12347,8 +12421,11 @@ const UI = {
   castVote(target){
     const mp=me(); if(!mp||!mp.alive) return;
     if(gameState.votes[Net.myId]!==undefined) return;
-    gameState.votes[Net.myId]=target;
+    /* en el host la tabla de votos es la oficial: la llena hostVote (que avisa a todos y cierra la votacion
+       si ya votaron todos); antes se anotaba aqui primero y hostVote lo ignoraba por "ya votado" */
+    if(!Net.isHost) gameState.votes[Net.myId]=target;
     NetMgr.toHost({t:'act',a:'vote',target});
+    if(gameState.votes[Net.myId]===undefined) return;
     Audio2.vote();
     toast(target==='skip'?'Voto: SALTAR':'Voto emitido','#ffcc48',1200);
     this.meetSel=null;
