@@ -270,6 +270,11 @@ kbd{background:#1a2438;border:1px solid var(--line2);border-bottom-width:3px;bor
 .ibtn:hover{filter:brightness(1.2)} .ibtn svg{width:30px;height:30px}
 .ibtn .k{position:absolute;right:-4px;bottom:-6px;font-size:10px}
 #actions{position:absolute;right:18px;bottom:18px;display:grid;grid-template-columns:auto auto;gap:12px;align-items:end;pointer-events:auto}
+#impCds{grid-column:1/-1;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.icd{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:6px 12px;border-radius:12px;
+  background:rgba(8,10,16,.78);border:2px solid #ff4d5e;font-family:var(--fd);font-weight:800;font-size:15px;color:#ffd5d9;letter-spacing:.5px}
+.icd b{font-size:18px;color:#fff;min-width:56px;text-align:right}
+.icd.ready{border-color:#37d6a0;color:#c9f5e6}.icd.ready b{color:#37d6a0}
 .abtn.use{width:124px;height:124px;border-radius:28px}
 .abtn.use svg{width:62px;height:62px}
 .abtn{width:100px;height:100px;border-radius:24px;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
@@ -663,6 +668,7 @@ kbd{background:#1a2438;border:1px solid var(--line2);border-bottom-width:3px;bor
   </div>
   <canvas id="miniMap" class="hide" width="250" height="176"></canvas>
   <div id="actions">
+    <div id="impCds" class="hide"><div class="icd" id="icdKill"><span>🔪 MATAR</span><b></b></div><div class="icd" id="icdSab"><span>☠ SABOTAJE</span><b></b></div></div>
     <button class="abtn ability hide" id="btnAbility"><kbd class="k" data-k="ability"></kbd>
       <span class="aic" id="abIcon">★</span><span id="abLbl">HABILIDAD</span><span class="cd hide" id="abCd"></span><span class="abBar hide" id="abBar"><i></i></span></button>
     <button class="abtn sab hide" id="btnSab"><kbd class="k" data-k="sabotage"></kbd>
@@ -8984,6 +8990,7 @@ const Game = {
     Local.fellow = d.fellow || [];
     Local.killCD = 10 + INTRO_SECS;
     Local.emCD = 10 + INTRO_SECS;
+    Local.sabCD = 8;
     Local.frozenUntil = performance.now()/1000 + INTRO_SECS;
     Local.abilityReady = performance.now()/1000 + 10 + INTRO_SECS;
     Local.battery = roleOpt('scientist','battery');
@@ -10093,6 +10100,17 @@ const BotAI = {
       }
     }
   },
+  /* el bot trabaja 5-10 s en un punto de reparacion antes de arreglarlo; si se va, empieza de nuevo.
+     keep=true: una vez terminado sigue devolviendo true mientras siga ahi (reactor) */
+  workAt(b, key, now, keep){
+    const w=b._work;
+    if(!w || w.key!==key || now-w.seen>0.6) b._work={key, until:now+rnd(5,10), seen:now};
+    else w.seen=now;
+    b.anim='interact';
+    if(now<b._work.until) return false;
+    if(!keep) b._work=null;
+    return true;
+  },
   finishWait(b){
     const g=b._doing; b._doing=null;
     if(g && g.kind==='task' && g.data && b.alive!==undefined){
@@ -10141,7 +10159,7 @@ const BotAI = {
         let best=pts[0], bd=1e9; for(const q of pts){ const d=Vector3.dist2D(b.x,b.z,q.x,q.z); if(d<bd){ bd=d; best=q; } }
         if(!b._goal || b._goal.kind!=='repair' || b._goal.data!==best.id) this.setGoal(b, best.x, best.z, 'repair', best.id);
         const r=this.follow(b, dt, speed*1.3, false);
-        if(r==='arrived' || bd<2.6){ Game.hostRepair(b, best.id); b._goal=null; }
+        if(r==='arrived' || bd<2.6){ b._goal=null; if(this.workAt(b,'rep'+best.id,now)) Game.hostRepair(b, best.id); }
         return;
       }
     }
@@ -10163,6 +10181,7 @@ const BotAI = {
           return;
         }
         b._goal=null; b.anim='interact';
+        if(!this.workAt(b,'rea'+mine.id,now,true)) return;
         const someoneThere = other && alivePlayers().some(q=>q.id!==b.id && !q.inVent && Vector3.dist2D(q.x,q.z,other.x,other.z)<3.0);
         if(someoneThere && (b._armAt||0)<now){ b._armAt=now+0.6; Game.hostArm(b, mine.id); }
         return;
@@ -10175,7 +10194,7 @@ const BotAI = {
       if(crew.length && crew[0].id===b.id){
         if(!b._goal || b._goal.kind!=='comms') this.setGoal(b, M.commsPos.x, M.commsPos.z, 'comms');
         const r=this.follow(b, dt, speed*1.2, false);
-        if(r==='arrived' || Vector3.dist2D(b.x,b.z,M.commsPos.x,M.commsPos.z)<3){ Game.hostFixComms(b); b._goal=null; }
+        if(r==='arrived' || Vector3.dist2D(b.x,b.z,M.commsPos.x,M.commsPos.z)<3){ b._goal=null; if(this.workAt(b,'comms',now)) Game.hostFixComms(b); }
         return;
       }
     }
@@ -10191,7 +10210,7 @@ const BotAI = {
     if(gameState.lightsOut && M.lightsPos && b._fixer){
       if(!b._goal || b._goal.kind!=='lights') this.setGoal(b, M.lightsPos.x, M.lightsPos.z, 'lights');
       const r=this.follow(b, dt, speed, false);
-      if(r==='arrived' || Vector3.dist2D(b.x,b.z,M.lightsPos.x,M.lightsPos.z)<3){ Game.hostFixLights(b); b._fixer=false; b._goal=null; }
+      if(r==='arrived' || Vector3.dist2D(b.x,b.z,M.lightsPos.x,M.lightsPos.z)<3){ b._goal=null; if(this.workAt(b,'lights',now)){ Game.hostFixLights(b); b._fixer=false; } }
       return;
     }
     b._fixer=false;
@@ -10231,7 +10250,7 @@ const BotAI = {
     if(r==='fail' && goalBefore && goalBefore.kind==='task' && goalBefore.data){ b._bad=b._bad||{}; b._bad[goalBefore.data.tid]=now+25; }
     if(r==='arrived'){
       const g=b._goal; b._goal=null;
-      if(g.kind==='task'){ b._doing=g; b._wait=rnd(2.5,5.5); b.anim='interact'; }
+      if(g.kind==='task'){ b._doing=g; b._wait=rnd(5,10); b.anim='interact'; }
       else { b._wait=rnd(1.5,4); b.anim='idle'; }
     }
   },
@@ -10336,7 +10355,7 @@ const BotAI = {
     if(g2 && g2.kind==='ventin' && (r==='arrived' || Vector3.dist2D(b.x,b.z,g2.x,g2.z)<2.0)){
       b._goal=null; b._ventHops=0; b._ventAt=0; Game.hostVent(b, g2.data); return;
     }
-    if(r==='arrived'){ b._goal=null; b._doing=null; b._wait=rnd(2,5); b.anim='interact'; }
+    if(r==='arrived'){ b._goal=null; b._doing=null; b._wait=rnd(5,10); b.anim='interact'; }
   },
   /* dentro de una ventilacion: salta de una a otra y sale cuando no hay nadie cerca */
   tickVent(b, now){
@@ -10400,7 +10419,7 @@ const BotAI = {
       else { const r=pick(M.taskSpots); if(r) this.setGoal(b, r.x, r.z, 'wander'); else return; }
     }
     const r=this.follow(b, dt, speed, true);
-    if(r==='arrived'){ const g=b._goal; b._goal=null; if(g.kind==='task'){ b._doing=g; b._wait=rnd(1.5,3); } else b._wait=rnd(1,3); }
+    if(r==='arrived'){ const g=b._goal; b._goal=null; if(g.kind==='task'){ b._doing=g; b._wait=rnd(5,10); } else b._wait=rnd(1,3); }
   }
 };
 
@@ -12636,6 +12655,17 @@ const UI = {
       use._kill=isKill; use.classList.toggle('kill',isKill); use.classList.toggle('use',!isKill);
       $('useIcon').innerHTML = isKill ? ICON_KNIFE : ICON_HAND;
       $('useLbl').textContent = isKill ? 'MATAR' : 'USAR';
+    }
+    /* enfriamientos del impostor, siempre a la vista */
+    const showCds = playing && mp.team==='imp' && mp.alive;
+    show('impCds', showCds);
+    if(showCds){
+      const setCd=(id,v)=>{ const el=$(id), ready=v<=0, txt=ready?'LISTO':Math.ceil(v)+' s';
+        if(el._t!==txt){ el._t=txt; el.lastChild.textContent=txt; el.classList.toggle('ready',ready); } };
+      setCd('icdKill', Local.killCD);
+      const sabOn = gameState.settings.sabotagesOn;
+      show('icdSab', !!sabOn);
+      if(sabOn) setCd('icdSab', Math.max(Local.sabCD||0, Net.isHost?Game.sabCooldown:0));
     }
     const cdEl=$('killCd');
     if(isKill && Local.killCD>0){ cdEl.textContent=Math.ceil(Local.killCD); show(cdEl,true); } else show(cdEl,false);
