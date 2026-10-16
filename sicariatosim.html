@@ -6714,7 +6714,7 @@ function nameTaken(name, exceptId){
 }
 /* latidos: cada invitado avisa que sigue ahi; si se calla demasiado, el host lo saca
    (una conexion que se cae sin aviso dejaba un "clon" que nunca votaba) */
-const HB_EVERY = 2, HB_TIMEOUT = 20, HB_STALE = 5;
+const HB_EVERY = 2, HB_TIMEOUT = 40, HB_STALE = 15, HB_VOTE_STALE = 12;
 /* identifica a esta pestana aunque se recargue: al volver a entrar reemplaza su registro viejo */
 function clientToken(){
   try{ let t=sessionStorage.getItem('sicsim.tok');
@@ -8762,8 +8762,7 @@ const Host = {
       /* en plena votacion su voto se descarta; si ya votaron todos los que quedan, se cierra */
       if(gameState.phase==='meeting' && gameState.meeting){
         delete gameState.votes[id];
-        const al=alivePlayers();
-        if(gameState.meeting.phase==='vote' && al.length && al.every(q=>gameState.votes[q.id]!==undefined)) Game.endVote();
+        if(gameState.meeting.phase==='vote' && Game.votesDone()) Game.endVote();
       }
       NetMgr.bcast({t:'ev',e:'left',id}); Game.checkWin();
     }
@@ -8779,6 +8778,10 @@ const Host = {
   watchdog(){
     if(!Net.isHost || Net.offline) return;
     const now=performance.now();
+    /* si el propio host estuvo trabado (pestana en pausa, carga pesada), los mensajes de los demas
+       siguen en cola: no se saca a nadie y se les da otra oportunidad */
+    const gap=now-(this._wdLast||now); this._wdLast=now;
+    if(gap>6000){ for(const p of allPlayers()) if(!p.bot && p.id!=='host') p.lastSeen=now; return; }
     for(const p of allPlayers()){
       if(p.bot || p.id==='host' || !p.peerId || !p.hb) continue;      /* solo a quien manda latidos */
       if(now-(p.lastSeen||now) > HB_TIMEOUT*1000)
@@ -9202,7 +9205,15 @@ const Game = {
     NetMgr.bcast({t:'ev',e:'voted',who:p.id,n:Object.keys(gameState.votes).length,
                   total:alivePlayers().length});
     this.clientEvent({e:'voted',who:p.id,n:Object.keys(gameState.votes).length,total:alivePlayers().length});
-    if(Object.keys(gameState.votes).length >= alivePlayers().length) this.endVote();
+    if(this.votesDone()) this.endVote();
+  },
+  /* ya votaron todos los vivos; a un invitado que dejo de responder (su conexion se cayo sin aviso)
+     no se le espera: si vuelve, sigue en la partida */
+  votesDone(){
+    const now=performance.now();
+    const al=alivePlayers();
+    return al.length>0 && al.every(q=>gameState.votes[q.id]!==undefined ||
+      (!q.bot && q.id!=='host' && q.hb && now-(q.lastSeen||now) > HB_VOTE_STALE*1000));
   },
   hostSabotage(p, sab, group){
     const S=gameState.settings;
@@ -9716,14 +9727,21 @@ const Game = {
           this.clientEvent({e:'votephase',secs:gameState.settings.voteTime});
         } else { this.endVote(); }
       }
-      if(gameState.meeting) BotAI.tickMeeting(now);
+      /* un error de un bot no puede congelar la reunion */
+      try{ if(gameState.meeting) BotAI.tickMeeting(now); }catch(e){ console.warn('BotAI.tickMeeting', e); }
       if(gameState.meeting && gameState.meeting.phase==='vote'){
         for(const b of alivePlayers()){
           if(!b.bot || gameState.votes[b.id]!==undefined) continue;
           if(!b._voteAt) b._voteAt = now + rnd(3,11);
           const left = gameState.meeting.endsAt - now;
-          if(now > b._voteAt || left < 2.5) this.hostVote(b, BotAI.decideVote(b));
+          if(now > b._voteAt || left < 2.5){
+            let v='skip'; try{ v=BotAI.decideVote(b); }catch(e){ console.warn('BotAI.decideVote', e); }
+            if(v===b.id || (v!=='skip' && !(gameState.players[v] && gameState.players[v].alive))) v='skip';
+            this.hostVote(b, v);
+            if(gameState.votes[b.id]===undefined && left<1.5) this.hostVote(b, 'skip');
+          }
         }
+        if(gameState.phase==='meeting' && gameState.meeting && gameState.meeting.phase==='vote' && this.votesDone()) this.endVote();
       }
     }
     /* roles */
@@ -12329,6 +12347,7 @@ const UI = {
   closeAllGameGUIs(){
     try{ if(TaskUI.active) TaskUI.close(); }catch(e){}
     show('taskModal',false); show('ventUI',false); show('camUI',false); show('mapModal',false); show('sabModal',false); show('pauseModal',false);
+    show('setModal',false); show('scr-opts',false); show('scr-help',false); show('roleModal',false);
     show('chatRow',false); Local.chatOpen=false; Local.inCams=false; Local.mapOpen=false; Local.sabOpen=false;
     const m=me(); if(m) m.inVent=null;
   },
@@ -12368,6 +12387,7 @@ const UI = {
       const row=document.createElement('div');
       const alive=p.alive;
       row.className='vrow'+(alive?'':' dead')+(canVote&&alive&&p.id!==Net.myId?' selectable':'')+(this.meetSel===p.id?' sel':'');
+      row.dataset.pid=p.id;
       const pc=sanitizeColor(p.color);
       row.style.background='linear-gradient(135deg,'+shade(pc,48)+' 0%,'+pc+' 58%,'+shade(pc,-42)+' 100%)';
       const cv=document.createElement('canvas'); cv.width=104; cv.height=104;
@@ -12420,22 +12440,29 @@ const UI = {
   },
   castVote(target){
     const mp=me(); if(!mp||!mp.alive) return;
+    const M=gameState.meeting;
+    if(gameState.phase!=='meeting' || !M || M.phase!=='vote'){ toast('Todavía no se puede votar','#ffcc48',1200); return; }
     if(gameState.votes[Net.myId]!==undefined) return;
     /* en el host la tabla de votos es la oficial: la llena hostVote (que avisa a todos y cierra la votacion
        si ya votaron todos); antes se anotaba aqui primero y hostVote lo ignoraba por "ya votado" */
     if(!Net.isHost) gameState.votes[Net.myId]=target;
     NetMgr.toHost({t:'act',a:'vote',target});
-    if(gameState.votes[Net.myId]===undefined) return;
+    if(gameState.votes[Net.myId]===undefined){ toast('No se pudo registrar el voto, inténtalo de nuevo','#ff8a96',1600); this.renderVoteGrid(); return; }
     Audio2.vote();
     toast(target==='skip'?'Voto: SALTAR':'Voto emitido','#ffcc48',1200);
     this.meetSel=null;
-    this.renderVoteGrid();
+    /* si fue el ultimo voto la votacion ya termino y se estan mostrando los resultados: no se tapan */
+    if(gameState.phase==='meeting') this.renderVoteGrid();
   },
   onVoted(d){
     if(this.voted) this.voted.add(d.who);
     addChat($('meetLog'),null,(gameState.players[d.who]?gameState.players[d.who].name:'?')+' ha votado ('+d.n+'/'+d.total+')',null,'sys');
     Audio2.vote();
-    this.renderVoteGrid();
+    if(gameState.phase!=='meeting') return;
+    if(d.who===Net.myId){ this.renderVoteGrid(); return; }
+    const st=$('meetGrid').querySelector('.vrow[data-pid="'+d.who+'"] .vstate');
+    if(!st){ this.renderVoteGrid(); return; }
+    if(!st.querySelector('.voted')){ const v=document.createElement('span'); v.className='voted'; v.textContent='VOTÓ'; st.appendChild(v); }
   },
   showEject(d){
     gameState.phase='eject';
@@ -12810,6 +12837,11 @@ const UI = {
     if(gameState.phase==='meeting' && gameState.meeting){
       const left=gameState.meeting.endsAt-performance.now()/1000;
       const txt=fmtTime(left); const mt=$('meetTimer'); if(mt.textContent!==txt) mt.textContent=txt;
+      /* la ventana de votacion aparece al terminar la animacion; si esa animacion se corto, se abre igual */
+      if(Cine.mode!=='meeting' && $('meetModal').classList.contains('hide')){
+        this._meetFix=(this._meetFix||0)+1;
+        if(this._meetFix>20){ this._meetFix=0; show('cine',false); show('meetModal',true); this.renderVoteGrid(); }
+      } else this._meetFix=0;
     }
     if(Local.mapOpen) drawMiniMap();
     if(Local.sabOpen) SabMap.draw();
