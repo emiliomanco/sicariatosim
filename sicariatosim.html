@@ -361,6 +361,7 @@ kbd{background:#1a2438;border:1px solid var(--line2);border-bottom-width:3px;bor
 #meetSide{flex:1;display:flex;flex-direction:column;gap:8px;min-width:260px}
 #meetLog{flex:1;min-height:200px;max-height:48vh;overflow-y:auto;background:#f5f8fb;border:3px solid #2b3647;border-radius:14px;padding:9px;display:flex;flex-direction:column;gap:4px}
 #meetLog .cmsg{text-shadow:none;color:#1b2a40}
+#meetLog .cmsg b{text-shadow:0 0 1px #1b2a40,0 0 1px #1b2a40,0 1px 1px rgba(0,0,0,.35)}   /* nombres blancos o amarillos legibles sobre el fondo claro */
 #meetLog .cmsg.sys{color:#8a5a00}
 #meetLog .cmsg.ghost{color:#3b6fa0}
 #meetLog .cmsg.qc{background:#e3ecf6;border-radius:7px;padding:2px 6px}
@@ -8821,15 +8822,16 @@ const Host = {
     p.anim = (d.a==='walk'||d.a==='run'||d.a==='interact') ? d.a : 'idle';
     p.lastNet=performance.now();
   },
-  /* qc: frase del chat rapido {k,p,r}; el texto lo arma el host para que todos lean lo mismo */
-  onChat(id,m,qc){
+  /* qc: frase del chat rapido {k,p,r}; el texto lo arma el host para que todos lean lo mismo.
+     meta: lo que quiso decir un bot que escribio a mano (solo lo usan los otros bots; nunca viene de la red) */
+  onChat(id,m,qc,meta){
     const p=gameState.players[id]; if(!p) return;
     const q = qc ? QC.clean(qc) : null;
     if(qc && !q) return;
     if(q) m=QC.text(q);
     m=String(m||'').slice(0,140); if(!m.trim()) return;
     if(!p.bot){ const t=performance.now(); if(t-(p._chatT||0)<500) return; p._chatT=t; }   /* sin inundar el chat */
-    try{ BotAI.onChat(p, m, q); }catch(e){ console.warn('BotAI.onChat', e); }
+    try{ BotAI.onChat(p, m, q || (p.bot && meta) || null); }catch(e){ console.warn('BotAI.onChat', e); }
     const ghost = !!p.ghost;
     const msg={t:'chat', from:p.id, name:p.name, color:p.color, m, ghost};
     if(q) msg.qc=q.k;
@@ -9869,7 +9871,27 @@ const Nav = {
     if(i<0||j<0||i>=N.nx||j>=N.nz) return -1;
     return i+j*N.nx;
   },
-  free(N,c){ return c>=0 && !N.block[c]; },
+  free(N,c){ return c>=0 && !N.block[c] && !(N.dyn && N.dyn[c]); },
+  /* puertas cerradas por un sabotaje: mientras sigan cerradas, las rutas las rodean */
+  dynSig:'',
+  syncDoors(M){
+    const N=this.get(M), closed=(M.doors||[]).filter(d=>d.closed), sig=closed.map(d=>d.id).join(',');
+    if(N.dynSig===sig) return;
+    N.dynSig=sig; this.dynSig=(M.id||'')+':'+sig;
+    if(!closed.length){ N.dyn=null; return; }
+    const D=new Uint8Array(N.nx*N.nz), half=0.1+PLAYER_R*0.95, nx=N.nx, nz=N.nz;
+    for(const w of closed){
+      const i0=clamp(Math.floor((Math.min(w.x1,w.x2)-half)/NAV_CELL)-N.x0,0,nx-1), i1=clamp(Math.floor((Math.max(w.x1,w.x2)+half)/NAV_CELL)-N.x0,0,nx-1);
+      const j0=clamp(Math.floor((Math.min(w.z1,w.z2)-half)/NAV_CELL)-N.z0,0,nz-1), j1=clamp(Math.floor((Math.max(w.z1,w.z2)+half)/NAV_CELL)-N.z0,0,nz-1);
+      for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++){
+        const cx=(i+N.x0+0.5)*NAV_CELL, cz=(j+N.z0+0.5)*NAV_CELL, c=closestOnSeg(cx,cz,w.x1,w.z1,w.x2,w.z2);
+        if(Math.hypot(cx-c[0],cz-c[1])<half) D[i+j*nx]=1;
+      }
+      const L=Math.hypot(w.x2-w.x1,w.z2-w.z1), n=Math.max(1,Math.ceil(L/(NAV_CELL*0.25)));
+      for(let k=0;k<=n;k++){ const i=Math.floor((w.x1+(w.x2-w.x1)*k/n)/NAV_CELL)-N.x0, j=Math.floor((w.z1+(w.z2-w.z1)*k/n)/NAV_CELL)-N.z0; if(i>=0&&j>=0&&i<nx&&j<nz) D[i+j*nx]=1; }
+    }
+    N.dyn=D;
+  },
   nearestFree(N,c,x,z){
     if(this.free(N,c)) return c;
     let ci, cj;
@@ -9961,7 +9983,8 @@ const Nav = {
   },
   /* A* en 8 direcciones (sin cortar esquinas) */
   path(M, sx,sz, gx,gz){
-    const N=this.get(M);
+    this.syncDoors(M);
+    const N=this.get(M), DY=N.dyn;
     const s=this.nearestFree(N,this.cell(N,sx,sz),sx,sz), g=this.nearestFree(N,this.cell(N,gx,gz),gx,gz);
     if(s<0||g<0) return null;
     if(s===g) return [{x:gx,z:gz}];
@@ -9985,8 +10008,8 @@ const Nav = {
       for(let k=0;k<8;k++){
         const i=ci+DI[k], j=cj+DJ[k];
         if(i<0||j<0||i>=nx||j>=N.nz) continue;
-        const nb=i+j*nx; if(N.block[nb] || N.closed[nb]===stamp) continue;
-        if(k>=4 && (N.block[ci+DI[k]+cj*nx] || N.block[ci+(cj+DJ[k])*nx])) continue;
+        const nb=i+j*nx; if(N.block[nb] || (DY && DY[nb]) || N.closed[nb]===stamp) continue;
+        if(k>=4){ const a=ci+DI[k]+cj*nx, b2=ci+(cj+DJ[k])*nx; if(N.block[a] || N.block[b2] || (DY && (DY[a]||DY[b2]))) continue; }
         const ng=N.g[cur]+DC[k];
         if(N.seen[nb]!==stamp || ng<N.g[nb]){ N.seen[nb]=stamp; N.g[nb]=ng; N.from[nb]=cur; push(nb, ng+H(nb)); }
       }
@@ -10135,6 +10158,356 @@ const QCUI = {
     this.reset();
   }
 };
+/* =====================================================================
+   COMO ESCRIBEN LOS BOTS (y como leen lo que escriben las personas)
+   Un bot decide QUE decir como una intencion {k, p, r, ...}; aqui se vuelve una frase
+   como la escribiria una persona en el chat: en minusculas, sin tildes, con abreviaturas,
+   en mayusculas cuando algo es grave y a veces con un error de dedo. Y al reves: lo que
+   escribe una persona se lee buscando nombres, colores, salas y palabras clave.
+   ===================================================================== */
+const Habla = {
+  /* {p} jugador, {r} sala, {v} victima, {x} otro jugador, {t} tarea */
+  F: {
+    sus:      ['{p} sus','{p} es sus','{p} está sus','creo que es {p}','yo digo que es {p}','para mí es {p}','{p} me parece raro',
+               '{p} anda raro','sospecho de {p}','es {p}','{p} 100% sus','{p} tiene algo raro','{p} es el impostor','yo creo que {p} es impostor'],
+    sawkill:  ['vi a {p} matar a {v}','¡{p} mató a {v}!','{p} mató a {v} en {r}','fue {p}, lo vi matar','{p} es impostor, lo vi matar',
+               'vi a {p} matar','lo vi, fue {p}, mató a {v}','{p} mató'],
+    sawvent:  ['vi a {p} meterse en una ventilación','{p} venteó','vi a {p} salir de una ventilación','{p} se metió a la vent en {r}',
+               '{p} usa las vents','vi a {p} en la vent'],
+    nearbody: ['{p} estaba cerca del cuerpo','{p} estaba por {r} cuando pasó','vi a {p} cerca de {r} justo antes','{p} andaba cerca del cuerpo',
+               '{p} estaba al lado del cuerpo'],
+    liar:     ['{p} miente','{p} está mintiendo','mentira {p}','{p} no estaba ahí','eso es mentira {p}','{p} mentiroso'],
+    vote:     ['voten a {p}','votemos a {p}','voten {p}','saquen a {p}','{p} afuera','echen a {p}','todos a {p}'],
+    iwas:     ['yo estaba en {r}','estaba en {r}','yo en {r}','yo andaba por {r}','estaba en {r} haciendo {t}','yo estaba en {r} haciendo tareas',
+               'en {r}','estuve en {r}'],
+    sawat:    ['vi a {p} en {r}','{p} estaba en {r}','a {p} lo vi en {r}','{p} andaba por {r}','yo vi a {p} por {r}'],
+    with:     ['estuve con {p}','yo estaba con {p}','{p} estaba conmigo','estuve con {p} todo el rato','{p} y yo estábamos juntos'],
+    safe:     ['{p} es safe','{p} no es','{p} es inocente','yo confío en {p}','{p} está limpio','no es {p}'],
+    didtask:  ['vi a {p} hacer una tarea','{p} hizo una tarea, es safe','vi a {p} hacer {t}','{p} hizo tarea, no es'],
+    bodyat:   ['el cuerpo estaba en {r}','encontré a {v} en {r}','{v} estaba muerto en {r}','cuerpo en {r}','lo encontré en {r}'],
+    notme:    ['no fui yo','yo no fui','no soy yo','yo no soy','qué? yo no','nada que ver, no fui yo','no soy impostor'],
+    where:    ['{p} dónde estabas?','dónde estaba {p}?','{p} dónde?','y {p}?','{p} dónde andabas?'],
+    who:      ['quién fue?','quién?','qué pasó?','quién mató?'],
+    wherebody:['dónde estaba el cuerpo?','dónde lo encontraste?','en qué parte estaba el cuerpo?'],
+    anyone:   ['alguien vio algo?','nadie vio nada?','info?','alguien vio algo raro?'],
+    skip:     ['skip','skipeen','salten el voto','skip, no hay pruebas','mejor skip','skip por ahora'],
+    dunno:    ['no sé','ni idea','no vi nada','yo no vi nada'],
+    agree:    ['sí','cierto','verdad','de una','exacto','eso','sí es verdad','confirmo'],
+    disagree: ['no','nada que ver','no creo','no es cierto','mentira'],
+    ivoted:   ['voté a {p}','yo voté {p}','ya voté a {p}','mi voto es para {p}'],
+    ivotedskip:['yo voté skip','skipeé','ya voté skip','voté skip'],
+    proof:    ['pruebas?','y las pruebas?','cómo sabes?','pruebas {p}?','por qué yo?','{p} pruebas?','qué pruebas tienes?'],
+    hurry:    ['voten ya','rápido que se acaba el tiempo','voten','apúrense'],
+    laugh:    ['jajaja','xd','jsjsjs',':v','jaja','jajajaja'],
+    trust:    ['confíen en mí','soy safe','yo hice tareas','yo soy tripulante'],
+    rip:      ['rip {v}','pobre {v}','nooo {v}'],
+    ghost:    ['me mató {p}','fue {p}','me mató {p} jaja','rip, fue {p}','{p} me mató'],
+    ghostmeet:['fue {p}!!','voten a {p}','es {p}, a mí me mató','{p} me mató'],
+    ghostcrew:['rip','me mataron','nooo','qué mala suerte'],
+    hi:       ['hola','holaa','qué más','buenas'],
+    gg:       ['gg','bien jugado','ggs','gg ez']
+  },
+  /* por que acusa a alguien (lo que una persona contaria como prueba) */
+  R: {
+    nearBody:  ['{p} estaba cerca del cuerpo','{p} estaba por {r} justo cuando pasó','vi a {p} cerca de {r} antes de que lo encontraran',
+                '{p} salía de {r}'],
+    withVictim:['{p} estaba con {v} antes','la última vez vi a {v} con {p}','{v} andaba con {p}','{p} estaba solo con {v}'],
+    liar:      ['{p} miente, yo estaba en {r} y no lo vi','mentira {p}, no estabas en {r}','{p} no estaba en {r}, yo estaba ahí'],
+    badVote:   ['{p} quería sacar a {x} y era inocente','{p} votó a {x} y era inocente','acuérdense que {p} empujó a {x}'],
+    defImp:    ['{p} defendía a {x} y era impostor','{p} estaba de lado de {x}, sus'],
+    unseen:    ['no he visto a {p} en todo el juego','{p} dónde andas siempre?','nadie ve a {p}','{p} no hace nada'],
+    selfRep:   ['{p} reportó su propio kill','qué raro que {p} lo haya encontrado','{p} lo encontró muy rápido...'],
+    contra:    ['lo que dice {p} no cuadra','{p} dijo una cosa y no cuadra'],
+    framedMe:  ['{p} me está inculpando','{p} miente sobre mí, yo no hice nada','por qué me acusas {p}? sus'],
+    cams:      ['vi a {p} en cámaras cerca de {r}','en cámaras vi a {p} por {r}'],
+    followed:  ['{p} me estaba siguiendo','{p} me seguía todo el rato, sus','{p} me venía siguiendo solo','cuidado con {p}, me seguía']
+  },
+  /* nombres cortos de las salas (como las llama la gente) */
+  ALIAS: {
+    electrical:['elec','electrical'], electricidad:['elec','electricidad'], cafeteria:['cafe','cafeteria'],
+    navigation:['nav','navegacion'], navegacion:['nav','navegacion'], communication:['comms','comunicaciones'], communications:['comms','coms'],
+    comunicaciones:['comms','comunicaciones'], medbay:['med','medbay','enfermeria'], enfermeria:['med','enfermeria'],
+    security:['seguridad','security','cams'], seguridad:['seguridad','cams'], 'upper engine':['upper','motor de arriba'],
+    'lower engine':['lower','motor de abajo'], storage:['storage','almacen'], almacen:['almacen','storage'], weapons:['weapons','armas'],
+    armeria:['armeria','armas'], shields:['shields','escudos'], escudos:['escudos','shields'], o2:['o2','oxigeno'], oxigeno:['o2','oxigeno'],
+    admin:['admin','administracion'], administracion:['admin','administracion'], reactor:['reactor'], laboratorio:['lab','laboratorio'],
+    informatica:['informatica','compu'], biblioteca:['biblio','biblioteca'], 'sala de camaras':['camaras','cams'],
+    'cancha de futbol':['cancha'], 'sala de profesores':['profesores','sala de profes'], vestuarios:['vestuarios'],
+    invernadero:['invernadero'], descontaminacion:['descontaminacion','descon'], especimenes:['especimenes','specimen'],
+    oficina:['oficina'], comedor:['comedor'], recepcion:['recepcion'], bodega:['bodega'], 'plaza central':['plaza','plaza central'],
+    malecon:['malecon'], mirador:['mirador'], promenade:['promenade'], exedra:['exedra'], balcon:['balcon']
+  },
+  /* tareas como las nombra la gente */
+  TAREA: { wires:'cables', uploaddata:'la descarga', transfer:'la descarga', medscan:'el escaneo', swipecard:'la tarjeta', fuelfill:'gasolina',
+    fuelpour:'gasolina', fillcan:'gasolina', garbagepull:'la basura', chutedump:'la basura', divertpower:'la energía', acceptpower:'la energía',
+    asteroids:'asteroides', calibrate:'el distribuidor', steering:'la nave', chartcourse:'el rumbo', recordtemp:'la temperatura',
+    manifolds:'los manifolds', keypad:'el teclado', inspectsample:'las muestras', alignengine:'el motor', align:'el motor',
+    startreactor:'el reactor', sequence:'la secuencia', sort:'ordenar', clean:'limpiar', lockers:'los casilleros', computer:'la compu',
+    power:'la energía', machine:'la máquina', insertkeys:'las llaves' },
+
+  /* ---------- estilo de cada bot (como escribe) ---------- */
+  estilo(){
+    const r=Math.random;
+    return { qc: r()<0.3 ? rnd(0.55,0.9) : rnd(0,0.3),      /* cuanto usa el chat rapido en vez de escribir */
+             tildes: r()<0.2,                                /* escribe con tildes */
+             mayus: r()<0.3 ? rnd(0.4,1) : 0,                /* empieza con mayuscula */
+             grita: rnd(0.15,0.9),                            /* MAYUSCULAS cuando algo es grave */
+             jerga: rnd(0,1),                                 /* q, xq, tb, :v */
+             corto: rnd(0,1),                                 /* prefiere frases cortas */
+             errores: rnd(0,0.05),                            /* errores de dedo */
+             risa: rnd(0,0.35),
+             color: r()<0.3 ? rnd(0.3,0.8) : rnd(0,0.12),     /* llama a la gente por su color */
+             abrev: rnd(0.2,0.9),                             /* "elec", "cafe", "nav" */
+             cps: rnd(3.5,7.5) };                             /* letras por segundo al escribir */
+  },
+  pick(arr, corto){
+    if(!arr || !arr.length) return '';
+    if(corto>0.6 && arr.length>2){ const s=arr.slice().sort((a,b)=>a.length-b.length); return pick(s.slice(0,Math.ceil(s.length/2))); }
+    return pick(arr);
+  },
+  sinTildes(s){ return s.replace(/ñ/g,'\u0001').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\u0001/g,'ñ').replace(/[¡¿]/g,''); },
+  colorDe(q){ const c=COLORS.find(c=>c.hex.toLowerCase()===String(q.color||'').toLowerCase()); return c ? c.id : null; },
+  /* como se refiere a un jugador: su nombre o su color */
+  ref(st, id){
+    const q=gameState.players[id]; if(!q) return '?';
+    const col=this.colorDe(q);
+    if(col && Math.random()<st.color) return ((col==='cafe'||col==='vino'||Math.random()<0.4)?'el ':'')+col;
+    return Math.random()<0.6 ? q.name.toLowerCase() : q.name;
+  },
+  sala(st, r){
+    if(!r) return 'algún lado';
+    const k=nameKey(r), al=this.ALIAS[k];
+    if(al && Math.random()<st.abrev) return al[0];
+    return Math.random()<0.7 ? r.toLowerCase() : r;
+  },
+  /* arma la frase final con el estilo del bot */
+  texto(b, q){
+    const st=b._st||(b._st=this.estilo());
+    let tpl;
+    const R=q.why && this.R[q.why];
+    if(R && Math.random()<0.75) tpl=this.pick(R, st.corto);
+    else if(q.k==='ivoted' && !q.p) tpl=this.pick(this.F.ivotedskip, st.corto);
+    else tpl=this.pick(this.F[q.k], st.corto);
+    if(!tpl) return '';
+    /* si la plantilla pide algo que no hay, se usa una que no lo pida */
+    const need=(t)=>(t.includes('{v}')&&!q.v)||(t.includes('{r}')&&!q.r)||(t.includes('{x}')&&!q.x)||(t.includes('{t}')&&!q.t)||(t.includes('{p}')&&!q.p);
+    if(need(tpl)){ const ok=(this.F[q.k]||[]).filter(t=>!need(t)); tpl = ok.length ? this.pick(ok, st.corto) : tpl; }
+    const keep=[];                                     /* nombres y salas no llevan errores de dedo */
+    const put=v=>{ keep.push(v); return v; };
+    let s=tpl.replace('{p}', q.p?put(this.ref(st,q.p)):'').replace('{x}', q.x?put(this.ref(st,q.x)):'')
+             .replace('{v}', q.v?put(this.ref(st,q.v)):'').replace('{r}', put(this.sala(st,q.r))).replace('{t}', q.t||'tareas');
+    s=s.replace(/\b([aA]) el /g,'$1l ').replace(/\b([dD])e el /g,'$1el ');          /* "a el rojo" -> "al rojo" */
+    return this.adorno(st, s, q.k, keep);
+  },
+  adorno(st, s, k, keep){
+    const grave = /^(sawkill|sawvent|framedMe)$/.test(k);
+    if(!st.tildes) s=this.sinTildes(s);
+    if(Math.random()<st.jerga){
+      s=s.replace(/\bque\b/g, ()=>Math.random()<0.7?'q':'que').replace(/\bpor qué\b|\bpor que\b|\bporque\b/g,'xq')
+         .replace(/\btambién\b|\btambien\b/g,'tb').replace(/\bpara\b/g, ()=>Math.random()<0.5?'pa':'para');
+      if(!grave && Math.random()<0.18) s+=pick([' :v',' xd',' pana',' bro',' ñaño']);
+    }
+    if(grave && Math.random()<st.grita){ s=s.toUpperCase(); if(!/[!?]$/.test(s)) s+=pick(['!!','!!!','!']); }
+    else if(Math.random()<st.mayus) s=s.charAt(0).toUpperCase()+s.slice(1);
+    if(/\?$/.test(s)){ const r=Math.random(); if(r<0.25) s=s.slice(0,-1); else if(r<0.4) s+='?'; }
+    if(/^(notme|disagree)$/.test(k) && Math.random()<0.3) s=s.replace(/\bno\b/, 'no'+'o'.repeat(1+(Math.random()*3|0)));
+    if(Math.random()<st.errores*Math.min(3, s.length/12)){
+      const w=s.split(' '), i=Math.floor(Math.random()*w.length), prot=(keep||[]).join(' ').toLowerCase();
+      if(w[i] && w[i].length>=5 && !/\d/.test(w[i]) && prot.indexOf(w[i].toLowerCase().replace(/[^a-záéíóúñ]/g,''))<0){ const j=1+Math.floor(Math.random()*(w[i].length-3)); w[i]=w[i].slice(0,j)+w[i][j+1]+w[i][j]+w[i].slice(j+2); s=w.join(' '); }
+    }
+    if(!grave && Math.random()<st.risa*0.25) s+=pick([' jaja',' xd',' jsjs']);
+    return s;
+  },
+  /* tiempo que tarda en escribirlo */
+  tipeo(b, s, qc){
+    const st=b._st||(b._st=this.estilo());
+    return qc ? rnd(0.7,1.6) : 0.5 + s.length/st.cps + rnd(0,0.8);
+  },
+
+  /* ---------- leer lo que escribe una persona ---------- */
+  VOCAB: ('mato mataron matar mataste asesino asesinato matando ventilacion ventilaciones venteo ventear ventea miente mentira mintiendo '+
+    'mentiroso mentirosa falso voten votemos votar boten echen echemos saquen saquemos expulsen afuera conmigo estuve estaba estabamos '+
+    'andaba andabamos juntos inocente limpio limpia confio confiable tripulante tareas tarea escaneo escaner haciendo cuerpo cadaver '+
+    'muerto muerta encontre encontraron reporte cerca antes cuando salia saliendo donde quien quienes nadie alguien vieron skip skipeen '+
+    'skipear salten saltar saltemos pruebas prueba rapido apurense verdad cierto exacto confirmo claro sospechoso sospechosa sospecho '+
+    'impostor culpable cuadra inculpando acusas visto camaras encontro encontraste estabas estuviste andabas hiciste sabes matado '+
+    'ventilo venteaste mataste reportaste reporto viste vieron parte').split(' '),
+  FILLER: /( [jas]*j[jas]+| x+d+| :v| lol| bro| pana| ñaño| nano| pues| ve| oe| oye)+ *$/,
+  norm(s){
+    s=' '+String(s||'').toLowerCase().replace(/ñ/g,'\u0001').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/\u0001/g,'ñ')+' ';
+    s=s.replace(/[^a-z0-9ñ:+ ]/g,' ').replace(/([a-zñ])\1{2,}/g,'$1').replace(/ no+ /g,' no ').replace(/ si+ /g,' si ');
+    const ab={q:'que',k:'que',ke:'que',xq:'porque',pq:'porque',porq:'porque',tb:'tambien',tmb:'tambien',taba:'estaba',tabas:'estabas',
+      tabamos:'estabamos',toy:'estoy',ta:'esta',pa:'para',imp:'impostor',impo:'impostor',vnt:'vent',nd:'nada',dnd:'donde',dond:'donde',
+      kien:'quien',qien:'quien',ia:'ya',sk:'skip',skp:'skip',vot:'vote',cams:'camaras',vetn:'vent',vnet:'vent',vents:'vent',venst:'vent'};
+    s=s.replace(/\S+/g, w=>ab[w]||w);
+    return s.replace(/\s+/g,' ');
+  },
+  /* corrige un error de dedo en una palabra clave ("cecra" -> "cerca") */
+  corregir(c, protect){
+    return c.replace(/\S{5,}/g, w=>{
+      if(this.VOCAB.indexOf(w)>=0 || protect.has(w)) return w;
+      for(const v of this.VOCAB) if(Math.abs(v.length-w.length)<=1 && this.lev1(w,v)) return v;
+      return w;
+    });
+  },
+  lev1(a,b){ /* a lo sumo un cambio: letra de mas, de menos, distinta o dos letras cambiadas de lugar */
+    if(a===b) return true; const la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false;
+    if(la===lb){ const d=[]; for(let i=0;i<la;i++) if(a[i]!==b[i]) d.push(i);
+      return d.length===1 || (d.length===2 && d[1]===d[0]+1 && a[d[0]]===b[d[1]] && a[d[1]]===b[d[0]]); }
+    const [x,y]= la<lb ? [a,b] : [b,a]; let i=0; while(i<x.length && x[i]===y[i]) i++;
+    return x.slice(i)===y.slice(i+1);
+  },
+  /* lo que se puede nombrar en esta partida: jugadores (nombre, partes del nombre, color) y salas */
+  contexto(selfId){
+    const players=[], colorCount={};
+    for(const q of Object.values(gameState.players)){ const c=this.colorDe(q); if(c) colorCount[c]=(colorCount[c]||0)+1; }
+    for(const q of Object.values(gameState.players)){
+      if(!q.name) continue;
+      const full=nameKey(q.name), keys=[full];
+      for(const w of full.split(' ')) if(w.length>=3 && keys.indexOf(w)<0) keys.push(w);
+      const c=this.colorDe(q);
+      players.push({id:q.id, keys, color: c && colorCount[c]===1 ? c : null, alive: q.alive!==false});
+    }
+    const rooms=[];
+    for(const r of QC.rooms()){
+      const k=nameKey(r), keys=[k].concat(this.ALIAS[k]||[]);
+      for(const w of k.split(' ')) if(w.length>=5 && !/^(sala|local|cancha|pasillo|zona)$/.test(w) && keys.indexOf(w)<0) keys.push(w);
+      rooms.push({name:r, keys});
+    }
+    rooms.push({name:QC.OUT, keys:['afuera','exterior','el exterior']});
+    rooms.push({name:QC.HALL, keys:['pasillo','un pasillo','el pasillo','pasillos']});
+    return {self:selfId, players, rooms};
+  },
+  /* jugadores (en el orden en que aparecen) y la sala que se nombra en una frase */
+  buscar(c, ctx){
+    const M=[]; let R=null, rl=0, rpos=-1;
+    const self=/ (yo|me|conmigo|mi|estuve|estabamos|andabamos) /.test(c) || /^ (estaba|andaba|ando|estoy|taba|hice|hacia) /.test(c);
+    const toks=[]; c.replace(/\S+/g,(w,i)=>{ toks.push([w,i]); return w; });
+    for(const pl of ctx.players){
+      let at=-1;
+      for(const k of pl.keys){ const i=c.indexOf(' '+k+' '); if(i>=0 && (at<0||i<at)) at=i; }
+      if(at<0 && pl.color){
+        const col=pl.color, fem=col.replace(/o$/,'a'), amb=(col==='cafe'||col==='vino');
+        const m=c.match(new RegExp(' (el |la |al |a la |a )?('+col+(fem!==col?'|'+fem:'')+')(ito|ita)? '));
+        if(m && (!amb || m[1])) at=m.index;
+      }
+      if(at<0){
+        for(const [t,i] of toks){ if(t.length<4) continue;
+          for(const k of pl.keys){ if(k.length>=5 && k.indexOf(' ')<0 && (k.startsWith(t) || (t.length>=5 && this.lev1(t,k)))){ at=i; break; } }
+          if(at>=0) break; }
+      }
+      if(at>=0 && pl.id!==ctx.self) M.push({id:pl.id, at, alive:pl.alive, col:!!(pl.color && c.indexOf(' '+pl.color, at)===at+(c.slice(at).match(/^ (el |la |al |a la |a )?/)||[''])[0].length-1)});
+    }
+    M.sort((a,b)=>a.at-b.at);
+    const colAt=M.filter(m=>m.col).map(m=>m.at);
+    for(const rm of ctx.rooms) for(const k of rm.keys){
+      let i=c.indexOf(' '+k+' ');
+      while(i>=0 && colAt.some(a=>i>=a && i<=a+8)) i=c.indexOf(' '+k+' ', i+1);     /* "el cafe" es un jugador, no la cafeteria */
+      if(i>=0 && k.length>rl){ R=rm.name; rl=k.length; rpos=i; }
+    }
+    if(!R){ /* sala con un error de dedo ("weaopns") */
+      for(const [t,i] of toks){ if(t.length<5) continue;
+        for(const rm of ctx.rooms){ if(rm.keys.some(k=>k.length>=5 && k.indexOf(' ')<0 && this.lev1(t,k))){ R=rm.name; rpos=i; break; } }
+        if(R) break; }
+    }
+    return {M, self, R};
+  },
+  leer(text, ctx){
+    const out=[], raw=String(text||''), all=this.norm(raw);
+    /* se separa en ideas: "yo estaba en elec y vi a rojo en nav" son dos */
+    let parts=raw.split(/[,.;!\n]+|\s+pero\s+|\s+aunque\s+|(?<=\S\s+\S+)\s+y\s+(?!yo\b|no\b)(?=\S+\s+\S+)/i).filter(x=>x.trim());
+    /* "el negro y el blanco estaban juntos": un pedazo que solo nombra a alguien va con el siguiente */
+    for(let i=0;i<parts.length-1;i++){
+      const a=this.norm(parts[i]).trim().split(' ');
+      if(a.length<=2 && !/[,.;!?]/.test(raw.slice(raw.indexOf(parts[i])+parts[i].length, raw.indexOf(parts[i])+parts[i].length+1))
+         && this.buscar(' '+a.join(' ')+' ', ctx).M.length && / (estaban|andaban|estan|son|eran|juntos) /.test(this.norm(parts[i+1]))){
+        parts.splice(i, 2, parts[i]+' y '+parts[i+1]); i--; }
+    }
+    let last=null;                                     /* "pablo no es, estuvo conmigo": el segundo pedazo habla de pablo */
+    for(const part of (parts.length?parts:[raw])){
+      const q=/\?/.test(part);
+      let c=this.norm(part);
+      const prot=new Set(); for(const pl of ctx.players) for(const k of pl.keys) for(const w of k.split(' ')) prot.add(w);
+      for(const rm of ctx.rooms) for(const k of rm.keys) for(const w of k.split(' ')) prot.add(w);
+      c=this.corregir(c, prot);
+      const solo=c.trim();
+      const sinRisa=(' '+solo+' ').replace(this.FILLER,' ');
+      if(!sinRisa.trim()){ if(/j|x|:v|lol/.test(solo)) out.push({k:'laugh'}); continue; }
+      const res=this.clausula(' '+sinRisa.trim()+' ', q, ctx, last);
+      for(const x of res) if(!out.some(o=>o.k===x.k && o.p===x.p && o.r===x.r)) out.push(x);
+      const named=this.buscar(' '+sinRisa.trim()+' ', ctx).M; if(named.length) last=named[named.length-1];
+    }
+    /* "fue rojo, lo vi matar": la acusacion pasa a ser haberlo visto matar (o ventear) */
+    const kill=/ (mato|matar|mataste|matando|asesino) /.test(all) && !/ me mato /.test(all), vent=/ (vent\w*|ventilacion\w*|ventea\w*) /.test(all);
+    if((kill||vent) && !out.some(o=>o.k==='sawkill'||o.k==='sawvent')){
+      const a=out.find(o=>o.p && /^(sus|vote|nearbody)$/.test(o.k)); if(a){ a.k = kill ? 'sawkill' : 'sawvent'; delete a.why; }
+    }
+    return out;
+  },
+  clausula(c, q, ctx, last){
+    const found=this.buscar(c, ctx), self=found.self, R=found.R;
+    let M=found.M;
+    if(!M.length && last && / (conmigo|estuvo|lo vi|la vi|miente|mintiendo|mato|vente\w*|esta sus|es sus|estaba con) /.test(c)) M=[last];
+    const has=re=>re.test(c), n=c.trim().split(' ').length;
+    const alive=M.filter(m=>m.alive), first=(alive[0]||M[0]||{}).id;
+    const verbAt=re=>{ const m=c.match(re); return m ? m.index : -1; };
+    /* el asesino: el que se nombra antes del verbo ("rojo mato a azul"), o el de "vi a X matar" */
+    const KILL=/ (mato|mataron|matar|mataste|asesino|asesinato|kill|killeo|mata|matando) /;
+    if(M.length && has(/ (propio kill|su kill|su propio|reporto su) /)) return [{k:'sus', p:first, why:'selfRep'}];
+    if(M.length && has(/ (pruebas|prueba|como sabes) /)) return [{k:'proof', p:first}];
+    if(M.length && has(KILL) && !has(/ me mato /)){
+      /* el muerto no puede ser el asesino: "mato a iker" solo dice quien murio */
+      const vi=verbAt(KILL), cand=M.some(m=>!m.alive) ? alive : M, before=cand.filter(m=>m.at<vi);
+      const killer=before.length ? before[before.length-1] : (!has(/ mato a | mataron a /) || !M.some(m=>!m.alive) ? cand[0] : null);
+      if(killer) return [{k:'sawkill', p:killer.id}];
+      if(!alive.length) return [];
+    }
+    if(M.length && has(/ (vent\w*|ventilacion\w*|ventea\w*|ducto|tubo|alcantarilla) /)) return [{k:'sawvent', p:first}];
+    if(M.length && has(/ no (estaba|estabas|estuvo) /) && !has(/ conmigo /)) return [{k:'liar', p:first}];
+    if(M.length && has(/ (inculpando|inculpa|me acusas|me acusa|miente sobre mi) /)) return [{k:'liar', p:first}];
+    if(has(/ (miente|mentira|mintiendo|mentiroso|mentirosa|falso|falsa) /)) return [M.length ? {k:'liar', p:first} : {k:'disagree'}];
+    if(has(/ (vote|mi voto) /) && !has(/ voten /)) return M.length ? [{k:'ivoted', p:first}] : (has(/ skip /) ? [{k:'ivoted'}] : []);
+    if(has(/ (voten|votemos|votar|vota|boten|botemos|echen|echemos|saquen|saquemos|expulsen|afuera|fuera|todos a|todos al|todos por) /))
+      return [M.length ? {k:'vote', p:first} : (has(/ (skip|nadie) /) ? {k:'skip'} : {k:'hurry'})];
+    /* "vi a la victima con X": X estuvo con la victima */
+    if(M.length>=2 && has(/ con /) && M.some(m=>!m.alive) && alive.length) return [{k:'sus', p:alive[0].id, why:'withVictim'}];
+    if(M.length && (has(/ conmigo /) || (has(/ con /) && (self || (R && M.length===1 && n<=5))) || has(/ y yo /) || (has(/ juntos /) && self))){
+      const out=[{k:'with', p:first}]; if(R) out.push({k:'iwas', r:R}); return out;
+    }
+    if(M.length && has(/ (no he visto|nadie ve|nadie lo ve|no hace nada|donde andas siempre|no lo he visto|no la he visto) /)) return [{k:'sus', p:first, why:'unseen'}];
+    if(M.length && has(/ (lo encontro|la encontro|propio kill|reporto su|reporto muy|encontro muy) /)) return [{k:'sus', p:first, why:'selfRep'}];
+    if(M.length && has(/ (no cuadra|no tiene sentido) /)) return [{k:'sus', p:first, why:'contra'}];
+    if(M.length && has(/ (siguiendo|seguia|persigue|perseguia|me sigue) /)) return [{k:'sus', p:first, why:'followed'}];
+    if(M.length && has(/ (safe|inocente|limpio|limpia|confio|confiable|no es|no fue|nunca fue|es buena|es bueno|tripulante|crew) /)) return [{k:'safe', p:first}];
+    if(M.length && has(/ (tarea|tareas|task|escaneo|escaner|scan|hizo|haciendo) /) && has(/ (vi|hizo|hace|haciendo|hacer) /)) return [{k:'didtask', p:first}];
+    if(R && has(/ (encontre|encontraron|reporte|muerto|muerta|cuerpo|cadaver) /) && !has(/ cerca /)) return [{k:'bodyat', r:R}];
+    if(M.length && (has(/ (cuerpo|cadaver|muerto|muerta) /) || has(/ (cerca|cuando paso|justo antes|antes de que|salia|saliendo) /))) return [{k:'nearbody', p:first}];
+    if(M.length && (q || has(/ donde /)) && !R) return [{k:'where', p:first}];
+    if(M.length && n<=3 && /^ y /.test(c)) return [{k:'where', p:first}];
+    if(M.length && R && (n<=3 || has(/ (vi|vio|estaba|estaban|andaba|andaban|esta|estan|anda|salio|entro|vimos|por|en|camaras) /)))
+      return (alive.length?alive:M).slice(0,3).map(m=>({k:'sawat', p:m.id, r:R}));
+    if(M.length && !q && (has(/ (sus|sospechoso|sospechosa|sospecho|impostor|raro|rara|culpable|asesino|fue|es el|es la|es) /) || n<=2)) return [{k:'sus', p:first}];
+    if(M.length && q) return [{k:'where', p:first}];
+    if(R && !M.length && n<=2) return [{k:'iwas', r:R}];                   /* "admin": respondiendo donde estaba */
+    if(R && (self || has(/ (estaba|estuve|ando|andaba|estoy|en|por) /)))
+      return has(/ (no fui|yo no fui|no soy) /) ? [{k:'notme'},{k:'iwas', r:R}] : [{k:'iwas', r:R}];
+    if(has(/ (no vi nada|no vi a nadie|no se nada) /)) return [{k:'dunno'}];
+    if(has(/ (por que yo|porque yo) /)) return [{k:'proof', p:first}];
+    if(has(/ (no fui|yo no|no soy|nunca|no hice nada|que yo|yo que|no mate) /)) return [{k:'notme'}];
+    if(has(/ (nadie vio|alguien vio|vieron algo|vio algo|info|alguien) /)) return [{k:'anyone'}];
+    if(has(/ (skip|skipeen|skipear|skipeemos|salten|saltar|saltemos|pasen|nadie) /)) return [{k:'skip'}];
+    if(has(/ (cuerpo|cadaver|lo encontraste|encontraron) /) && (has(/ donde /) || has(/ que parte /))) return [{k:'wherebody'}];
+    if(q && has(/ donde (fue|paso|era|estaba) /)) return [{k:'wherebody'}];
+    if(has(/ (pruebas|prueba|como sabes|por que yo|porque yo) /)) return [{k:'proof', p:first}];
+    if(has(/ (quien|quienes|que paso) /)) return [{k:'who'}];
+    if(has(/ (rapido|apurense|ya voten|vamos) /)) return [{k:'hurry'}];
+    if(has(/ (no se|nose|ni idea|no vi nada|no vi) /)) return [{k:'dunno'}];
+    if(n<=4 && has(/ (no es cierto|no creo|nada que ver|para nada|nel|nop) /)) return [{k:'disagree'}];
+    if(n<=4 && has(/ (si|cierto|verdad|exacto|de una|eso|confirmo|tal cual|obvio|claro|ok|okay|dale|yes|\+1|ya) /)) return [{k:'agree'}];
+    if(n<=3 && has(/ no /)) return [{k:'disagree'}];
+    return [];
+  }
+};
 function roomNameAt(M, x, z){
   let best=null, area=1e9;
   for(const r of M.rooms){
@@ -10157,14 +10530,14 @@ function roomNameAt(M, x, z){
    del cuerpo, me acuso de algo que no hice, su coartada no cuadra con lo que vi...).
    ===================================================================== */
 const BOT_FEATS = ['bias','prior','kill','vent','nearBody','withVictim','task','alibi','framedMe','contra',
-                   'acc','vouch','badVote','goodVote','defImp','selfRep','unseen'];
+                   'acc','vouch','badVote','goodVote','defImp','selfRep','unseen','claimBody','followed'];
 const BOT_MODEL = {
-  ver:'entrenado: 4 rondas, 1860 partidas simuladas, 109 mil decisiones de voto',
+  ver:'entrenado: 7 rondas, 4140 partidas simuladas, 237 mil decisiones de voto (bots con vista y memoria humanas)',
   /* pesos aprendidos (mismo orden que BOT_FEATS). Lo que mas pesa: verlo matar (kill), verlo en una
      ventilacion (vent), que me acuse de algo que yo se que es mentira (framedMe), haber defendido a un
      impostor ya expulsado (defImp) y, en contra, verlo hacer una tarea (task) o que otros respondan por el (vouch) */
-  w:[-0.61, 0.75, 6.12, 4.60, 0.43, 0.17, -7.58, -1.56, 4.00, 1.36, 1.66, -3.50, 0.40, -1.28, 2.79, -3.40, 0.58],
-  tVote:0.42,          /* vota a alguien si cree que es impostor con al menos esta probabilidad (ajustado en simulacion) */
+  w:[-0.50, 0.89, 6.58, 5.64, 0.58, 0.09, -8.23, -1.65, 4.00, 0.97, 1.58, -4.75, 0.29, -1.29, 2.65, -4.15, 0.63, -0.58, -0.89],
+  tVote:0.36,          /* vota a alguien si cree que es impostor con al menos esta probabilidad (ajustado en simulacion) */
   tBand:0.30           /* se suma a un voto ajeno si la sospecha llega a esto */
 };
 const BotAI = {
@@ -10184,28 +10557,53 @@ const BotAI = {
       b._path=null; b._goal=null; b._report=null; b._state='tasks'; b._wait=0; b._look=0; b._chatAt=0;
       b._say=[]; b._nSaid=0; b._voteAt=0; b._lastKill=null; b._buddy=null; b._stalk=null; b._calledOn=null; b._witness=null; b._avoid=null; b._flee=0;
       /* personalidad: cada bot juega distinto, como las personas */
-      b._pers={ talk:rnd(0.35,1), aggr:rnd(0.15,1), gull:rnd(0.4,1), bluff:rnd(0.3,1), lazy:rnd(0,0.35), social:rnd(0,1) };
+      b._pers={ talk:rnd(0.35,1), aggr:rnd(0.15,1), gull:rnd(0.4,1), bluff:rnd(0.3,1), lazy:rnd(0,0.35), social:rnd(0,1),
+                mem:rnd(0.3,1),                          /* cuanto se acuerda de lo que vio */
+                run:Math.random()<0.45 ? rnd(0.4,0.9) : rnd(0,0.2),   /* hay gente que corre todo el rato */
+                hand:rnd(0.9,1.12),                      /* que tan rapido hace las tareas */
+                cams:Math.random()<0.35 ? rnd(0.3,0.8) : rnd(0,0.1),  /* le gusta mirar las camaras */
+                fun:rnd(0,1) };                          /* saluda, baila */
+      b._gaze=null; b._gazeAt=0; b._busy=false; b._onCams=null; b._camAt=0; b._killer=null; b._ghostSay=0; b._alibiBud=null; b._emoteAt=0;
+      b._st=Habla.estilo(); b._typing=null;             /* como escribe en el chat */
       b._spd=rnd(0.94,1.06);
     }
   },
   mem(b){
     return b._mem || (b._mem={ sus:{}, seen:{}, trail:{}, mine:[], ev:{}, claims:{}, said:{}, bodies:{},
-                               lastBody:null, accuser:null, pc:{}, skipPull:0, fresh:{}, cur:{} });
+                               lastBody:null, accuser:null, pc:{}, skipPull:0, fresh:{}, cur:{}, fol:{}, lastPer:0 });
   },
   /* lo que vio desde la ultima reunion (lo que se cuenta como "nuevo") */
-  fr(b, id){ const m=this.mem(b); return m.fresh[id] || (m.fresh[id]={kill:0, vent:0, nearBody:0, withVictim:0, task:0}); },
+  fr(b, id){ const m=this.mem(b); return m.fresh[id] || (m.fresh[id]={kill:0, vent:0, nearBody:0, withVictim:0, task:0, followed:0}); },
   ev(b, id){ const m=this.mem(b); return m.ev[id] || (m.ev[id]={ kill:0, vent:0, nearBody:0, withVictim:0, task:0, alibi:0,
-             framedMe:0, contra:0, acc:0, vouch:0, badVote:0, goodVote:0, defImp:0, selfRep:0 }); },
+             framedMe:0, contra:0, acc:0, vouch:0, badVote:0, goodVote:0, defImp:0, selfRep:0, followed:0 }); },
   /* sospecha "rapida" (se usa en juego para evitar quedarse a solas con alguien) */
   sus(b, id, v){ if(!id || id===b.id) return; const m=this.mem(b); m.sus[id]=(m.sus[id]||0)+v; },
   visionOf(b){
     if(gameState.lightsOut && b.team!=='imp') return 5;
     return 13;
   },
-  sees(b, x, z, range){
+  /* ve lo que tiene delante (como una persona en primera persona) y lo que tiene pegado.
+     Haciendo una tarea, reparando o mirando las camaras casi no ve lo que pasa a su alrededor */
+  FOV_COS: 0.42,
+  sees(b, x, z, range, cosMin){
     const d=Vector3.dist2D(b.x,b.z,x,z);
     if(d>(range||this.visionOf(b))) return false;
-    return d<1.2 || losClear(Game.M,b.x,b.z,x,z);
+    if(d<1.2) return true;
+    if(b._busy) return d<2.2 && losClear(Game.M,b.x,b.z,x,z);
+    if(d>2.8){
+      const fx=Math.sin(b.yaw||0), fz=Math.cos(b.yaw||0);
+      if(((x-b.x)*fx+(z-b.z)*fz)/d < (cosMin===undefined ? this.FOV_COS : cosMin)) return false;
+    }
+    return losClear(Game.M,b.x,b.z,x,z);
+  },
+  /* lo que se ve en la camara que esta mirando (si esta en el monitor de seguridad) */
+  camSees(b, x, z){
+    const C=b._onCams, M=Game.M; if(!C || !M.cams.length) return false;
+    const c=M.cams[C.idx % M.cams.length]; if(!c) return false;
+    const d=Vector3.dist2D(c.x,c.z,x,z); if(d>22 || (gameState.lightsOut && d>9)) return false;
+    const a=Math.atan2(x-c.x, z-c.z), y=camYawNow(c);
+    if(Math.abs(angDiff(y, a)) > (c.fov||78*DEG)/2) return false;
+    return losClear(M, c.x, c.z, x, z);
   },
   /* el bot sabe de alguien si lo esta viendo (hasta donde ve una persona) o lo vio hace un momento;
      no sabe de los que estan detras de una pared */
@@ -10222,8 +10620,14 @@ const BotAI = {
     for(const w of alivePlayers()){
       if(w.id===b.id || w.id===ignoreId || w.team==='imp' || w.inVent) continue;
       if(!this.knows(b, w, now)) continue;
-      const range = w.bot ? (dark?5.5:13.5) : (dark ? DARK_VISION*gameState.settings.crewVision+0.5 : 30);
+      if(w.bot){
+        /* se ve hacia donde mira y si esta metido en una tarea; un margen por si se da la vuelta */
+        if(this.sees(w, x, z, dark?5.5:13.5, 0.15)) return true;
+        continue;
+      }
       const d=Vector3.dist2D(w.x,w.z,x,z);
+      if(w.anim==='interact' && d>2.2) continue;            /* una persona haciendo una tarea no ve nada */
+      const range = dark ? DARK_VISION*gameState.settings.crewVision+0.5 : 30;
       if(d<range && (d<1.2 || losClear(M,w.x,w.z,x,z))) return true;
     }
     return false;
@@ -10260,13 +10664,17 @@ const BotAI = {
     const now=performance.now()/1000;
     const room=this.room(victim.x, victim.z);
     if(killer.bot) killer._lastKill={t:now, room, x:victim.x, z:victim.z, victim:victim.id};
+    /* la victima vio quien la mato (como fantasma se lo cuenta a los otros fantasmas) */
+    if(victim.bot){ victim._killer=shownAs(killer).id; victim._ghostSay=now+rnd(4,12); victim._onCams=null; victim._busy=false; }
     for(const b of alivePlayers()){
       if(!b.bot || b.id===killer.id || b.id===victim.id) continue;
       const shown=shownAs(killer);
-      if(!this.sees(b, killer.x, killer.z)) continue;
+      const cam=!this.sees(b, killer.x, killer.z) && this.camSees(b, killer.x, killer.z);
+      if(!cam && !this.sees(b, killer.x, killer.z)) continue;
       if(b.team==='imp') continue;
       this.sus(b, shown.id, 12);
-      const e=this.ev(b, shown.id); e.kill=1; this.fr(b, shown.id).kill=1;
+      const e=this.ev(b, shown.id); e.kill=1; e.killV=victim.id; e.killR=room; this.fr(b, shown.id).kill=1;
+      if(cam){ e.camKill=1; e.camR=room; }
       b._witness={ killer:shown.id, until:now+40, victim:victim.id, room, why:'kill' };
     }
   },
@@ -10274,8 +10682,10 @@ const BotAI = {
     if(p.role==='engineer' && Math.random()<0.5) return;
     for(const b of alivePlayers()){
       if(!b.bot || b.id===p.id || b.team==='imp') continue;
-      if(!this.sees(b, p.x, p.z, 9)) continue;
-      this.sus(b, p.id, 6); this.ev(b, p.id).vent++; this.fr(b, p.id).vent++;
+      const cam=!this.sees(b, p.x, p.z, 9) && this.camSees(b, p.x, p.z);
+      if(!cam && !this.sees(b, p.x, p.z, 9)) continue;
+      this.sus(b, p.id, 6); this.ev(b, p.id).vent++; this.ev(b, p.id).ventR=this.room(p.x,p.z); this.fr(b, p.id).vent++;
+      if(cam){ this.ev(b, p.id).camVent=1; this.ev(b, p.id).camR=this.room(p.x,p.z); }
       /* quien ve a alguien meterse en una ventilacion suele correr al boton */
       if(b.emergencies>0 && !b._witness && Math.random()<0.75) b._witness={ killer:p.id, until:performance.now()/1000+30, why:'vent' };
     }
@@ -10296,15 +10706,40 @@ const BotAI = {
     /* donde estuve yo (para contar mi coartada en la reunion) */
     const myR=this.room(b.x,b.z), lm=m.mine[m.mine.length-1];
     if(!lm || now-lm.t>2 || lm.room!==myR){ m.mine.push({t:now, room:myR, x:b.x, z:b.z}); if(m.mine.length>90) m.mine.shift(); }
+    /* se le olvida lo que vio hace mucho (a unos mas que a otros) */
+    if(now>(m.pruneAt||0)){
+      m.pruneAt=now+8;
+      const span=100+160*((b._pers&&b._pers.mem)||0.6);
+      for(const id in m.trail){ const t=m.trail[id]; while(t.length && now-(t[0].t2||t[0].t)>span) t.shift(); }
+      for(const id in m.seen) if(now-m.seen[id].t>span) delete m.seen[id];
+      while(m.mine.length && now-m.mine[0].t>260) m.mine.shift();
+    }
     for(const q of alivePlayers()){
       if(q.id===b.id || q.inVent || q.vanishUntil>now) continue;
-      if(!this.sees(b, q.x, q.z, vis)) continue;
+      const viaCam = b._onCams && this.camSees(b, q.x, q.z);    /* en el monitor ve lo que muestra la camara */
+      if(!viaCam && !this.sees(b, q.x, q.z, vis)) continue;
+      /* a alguien que esta lejos no siempre lo registra */
+      const dq=Vector3.dist2D(b.x,b.z,q.x,q.z);
+      if(dq>6 && Math.random()<(dq-6)*0.05) continue;
       const shown=shownAs(q), id=shown.id;
       const room=this.room(q.x,q.z);
       m.seen[id]={t:now, x:q.x, z:q.z, d:Vector3.dist2D(b.x,b.z,q.x,q.z), room};
       const tr=m.trail[id]||(m.trail[id]=[]), last=tr[tr.length-1];
       if(!last || now-last.t>2 || last.room!==room){ tr.push({t:now, room, x:q.x, z:q.z}); if(tr.length>70) tr.shift(); }
       else { last.t2=now; }
+    }
+    /* alguien lo viene siguiendo a solas un buen rato (el modelo aprendio que casi siempre es un companero que lo acompana) */
+    if(b.team!=='imp' && !b._busy){
+      const dtp=Math.min(1, now-(m.lastPer||now)); m.lastPer=now;
+      for(const q of alivePlayers()){
+        if(q.id===b.id || q.inVent) continue;
+        const d=Vector3.dist2D(b.x,b.z,q.x,q.z), sid=shownAs(q).id;
+        const others=alivePlayers().some(w=>w.id!==b.id && w.id!==q.id && !w.inVent && Vector3.dist2D(b.x,b.z,w.x,w.z)<10);
+        if(d<5.5 && !others && (b.anim==='walk'||b.anim==='run') && this.sees(b, q.x, q.z, 6, -1)){
+          m.fol[sid]=(m.fol[sid]||0)+dtp;
+          if(m.fol[sid]>9 && !this.ev(b,sid).followed){ this.ev(b,sid).followed=1; this.fr(b,sid).followed=1; }
+        } else if(m.fol[sid]) m.fol[sid]=Math.max(0, m.fol[sid]-dtp*0.5);
+      }
     }
     /* alejarse de quien cree que es el impostor si se queda a solas con el */
     if(b.team!=='imp'){
@@ -10318,7 +10753,7 @@ const BotAI = {
     }
     /* cadaveres a la vista */
     for(const body of gameState.bodies){
-      if(body.reported || !this.sees(b, body.x, body.z, vis)) continue;
+      if(body.reported || !(this.sees(b, body.x, body.z, vis) || (b._onCams && this.camSees(b, body.x, body.z)))) continue;
       const first=!m.bodies[body.id];
       if(first){ m.bodies[body.id]=1; this.onBodySeen(b, body, now); }
       if(b._report) continue;
@@ -10381,7 +10816,10 @@ const BotAI = {
     return [1, prior, e.kill?1:0, Math.min(e.vent,2), Math.min(e.nearBody,2), Math.min(e.withVictim,1),
             Math.min(e.task,2), Math.min(e.alibi,2), e.framedMe?1:0, Math.min(e.contra,2),
             Math.tanh(e.acc/3), Math.tanh(e.vouch/3), Math.min(e.badVote,2), Math.min(e.goodVote,2),
-            Math.min(e.defImp,1), e.selfRep?1:0, unseen];
+            Math.min(e.defImp,1), e.selfRep?1:0, unseen,
+            /* dijo que estaba justo en la sala del cuerpo */
+            (this.meet && this.meet.bodyRoom && m.claims[q.id] && m.claims[q.id].room===this.meet.bodyRoom) ? 1 : 0,
+            e.followed?1:0];
   },
   prob(b, q){
     const x=this.features(b,q), w=BOT_MODEL.w;
@@ -10452,11 +10890,14 @@ const BotAI = {
     if(victimId){ const bodies=Game._lastBodies||[]; const bd=bodies.find(x=>x.victim===victimId); if(bd && bd.t) kt=bd.t; }
     this.meet={ n:(this.meet?this.meet.n:0)+1, t0:now, caller:callerId, victim:victimId, kt, talk:[], accused:{}, answered:{}, bodyRoom:null };
     const start=now+MEETING_SPLASH;
+    /* los fantasmas tambien comentan (solo los leen otros fantasmas) */
+    for(const g of allPlayers()){ if(g.bot && !g.alive){ g._gmAt = (g._killer && Math.random()<0.5) ? start+rnd(4,16) : 0; g._typing=null; } }
     for(const b of alivePlayers()){
       if(!b.bot) continue;
       const m=this.mem(b), P=b._pers||{talk:0.6,aggr:0.5,gull:0.7,bluff:0.6};
       b._path=null; b._goal=null; b._report=null; b._witness=null; b._buddy=null; b._stalk=null; b._avoid=null;
-      b._say=[]; b._nSaid=0; b._sayNext=0; m.said={}; m.sent={}; m.claims={}; m.alibi=null; m.skipPull=0; m.accuser=null;
+      b._doing=null; b._onCams=null; b._busy=false; b._faking=false; b._emoting=false; b._alibiBud=null; b._dark=undefined;
+      b._say=[]; b._nSaid=0; b._sayNext=0; b._typing=null; m.said={}; m.sent={}; m.claims={}; m.alibi=null; m.skipPull=0; m.accuser=null;
       m.cur=m.fresh||{}; m.fresh={};                          /* lo nuevo desde la reunion anterior */
       const why=(b.id===callerId && !victim) ? b._calledOn : null; b._calledOn=null;
       for(const id in m.ev){ m.ev[id].acc*=0.5; m.ev[id].vouch*=0.5; }
@@ -10467,38 +10908,41 @@ const BotAI = {
           const ec=this.ev(b,caller.id);
           if(ec.nearBody>0){ let alone=true; for(const id in m.ev){ if(id!==caller.id && m.ev[id].nearBody>0) alone=false; } if(alone) ec.selfRep=1; }
         }
-        if(b.id===callerId && victim && m.lastBody) this.say(b, 'bodyat', null, m.lastBody.room, t(1.2,2.6));
+        if(b.id===callerId && victim && m.lastBody) this.say(b, 'bodyat', null, m.lastBody.room, t(1.2,2.6), {v:victimId});
         /* lo que vio, de lo mas fuerte a lo mas debil */
         let said=0;
         /* si llamo a la reunion por una sospecha, lo dice de entrada */
         if(why && why.id && gameState.players[why.id] && gameState.players[why.id].alive && why.why==='sus'){ this.say(b,'vote',why.id,null,t(0.6,1.6)); said++; }
         for(const id in m.ev){
           const e=m.ev[id], q=gameState.players[id]; if(!q || !q.alive) continue;
-          if(e.kill){ this.say(b,'sawkill',id,null,t(0.8,2.2)); said++; }
+          if(e.kill){ this.say(b,'sawkill',id,e.killR||null,t(0.8,2.2),{v:e.killV}); said++; }
         }
         for(const id in m.ev){
           const e=m.ev[id], q=gameState.players[id]; if(!q || !q.alive || e.kill) continue;
-          if(e.vent>0){ this.say(b,'sawvent',id,null,t(2,4.5)); said++; }
+          if(e.vent>0){ this.say(b,'sawvent',id,e.ventR||null,t(2,4.5)); said++; }
         }
         /* quien estaba cerca del cuerpo (solo lo nuevo; si estaba conmigo, mejor digo que estuvimos juntos) */
         const comp=this.companion(b, this.meet.kt-25, this.meet.kt+3);
         const near=Object.keys(m.cur).filter(id=>{ const q=gameState.players[id], e=m.ev[id]; return q && q.alive && id!==comp && m.cur[id].nearBody>0 && e && !e.kill && !e.vent; });
-        if(victim && near.length && near.length<=2 && Math.random()<0.5+P.aggr*0.5){ this.say(b,'nearbody',near[0],null,t(3,6.5)); said++; }
+        if(victim && near.length && near.length<=2 && Math.random()<0.5+P.aggr*0.5){ this.say(b,'nearbody',near[0],m.lastBody?m.lastBody.room:null,t(3,6.5),{v:victimId}); said++; }
         /* sospechoso de reuniones anteriores */
         let topId=null, topP=0;
         for(const q of alivePlayers()){ if(q.id===b.id) continue; const p=this.prob(b,q); if(p>topP){ topP=p; topId=q.id; } }
-        if(topId && topP>0.62 && !said){ this.say(b, Math.random()<0.5?'sus':'vote', topId, null, t(4,8)); said++; }
+        if(topId && topP>0.62 && !said){ this.say(b, Math.random()<0.5?'sus':'vote', topId, null, t(4,8), this.reasonFor(b, topId)); said++; }
         /* coartada propia: con quien estuvo, o donde */
         if(comp && Math.random()<0.35+P.talk*0.4){ this.say(b,'with',comp,null,t(4,9)); this.ev(b,comp).alibi+=0.5; }
-        else if(Math.random()<0.25+P.talk*0.35) this.say(b,'iwas',null,this.myRoomAt(b,this.meet.kt),t(3.5,9));
+        else if(Math.random()<0.25+P.talk*0.35) this.say(b,'iwas',null,this.myRoomAt(b,this.meet.kt),t(3.5,9),{t:this.taskWord(b, false)});
         if(!said && Math.random()<0.3*P.talk) this.say(b, Math.random()<0.6?'anyone':'who', null, null, t(2,6));
         if(!said && !topId && Math.random()<0.25) this.say(b,'skip',null,null,t(9,15));
       } else {
         /* impostor: si lo "encontro" el, dice donde; se arma una coartada; a veces culpa a alguien */
-        if(b.id===callerId && victim && m.lastBody) this.say(b,'bodyat',null,m.lastBody.room,t(1.2,2.8));
-        if(Math.random()<0.35+P.bluff*0.35) this.say(b,'iwas',null,this.alibiRoom(b),t(3,8));
+        if(b.id===callerId && victim && m.lastBody) this.say(b,'bodyat',null,m.lastBody.room,t(1.2,2.8),{v:victimId});
+        if(Math.random()<0.35+P.bluff*0.35) this.say(b,'iwas',null,this.alibiRoom(b),t(3,8),{t:this.taskWord(b, true)});
         const target=this.scapegoat(b);
-        if(target && Math.random()<0.15+P.aggr*0.45) this.say(b, Math.random()<0.6?'sus':'nearbody', target, null, t(4,10));
+        if(target && Math.random()<0.15+P.aggr*0.45){
+          if(Math.random()<0.6) this.say(b,'sus', target, null, t(4,10), Math.random()<0.5 ? {why:'unseen'} : {});
+          else this.say(b,'nearbody', target, m.lastBody?m.lastBody.room:null, t(4,10), {v:victimId});
+        }
         else if(Math.random()<0.3) this.say(b, Math.random()<0.5?'skip':'anyone', null, null, t(6,12));
       }
       /* los que tienen pruebas votan antes; los que dudan esperan a ver lo que dicen los demas */
@@ -10523,14 +10967,57 @@ const BotAI = {
     return false;
   },
   /* encola una frase (sin repetir la misma en la reunion) */
-  say(b, k, p, r, at){
-    const m=this.mem(b), key=k+'|'+(p||'')+'|'+(r||'');
+  say(b, k, p, r, at, extra){
+    const m=this.mem(b), key=k+'|'+(p||'')+'|'+(r||'')+'|'+((extra&&extra.why)||'');
     if(m.said[key]) return; m.said[key]=1;
-    (b._say=b._say||[]).push({k, p:p||undefined, r:r||undefined, at});
+    (b._say=b._say||[]).push(Object.assign({k, p:p||undefined, r:r||undefined, at}, extra||{}));
+  },
+  /* por que sospecha de alguien (lo que contaria una persona) */
+  reasonFor(b, id){
+    const m=this.mem(b), e=this.ev(b,id), cur=m.cur&&m.cur[id], lb=m.lastBody;
+    if(e.framedMe) return {why:'framedMe'};
+    if(cur && cur.nearBody && lb) return {why:'nearBody', r:lb.room, v:lb.victim};
+    if(cur && cur.withVictim && lb) return {why:'withVictim', v:lb.victim};
+    if(e.contra>=1) return {why:'contra'};
+    if(e.badVote>=1 && e.badVoteX) return {why:'badVote', x:e.badVoteX};
+    if(e.defImp && e.defImpX) return {why:'defImp', x:e.defImpX};
+    if(e.selfRep) return {why:'selfRep'};
+    if(e.camKill || e.camVent) return {why:'cams', r:e.camR};
+    const sn=m.seen[id]; if(!sn || performance.now()/1000-sn.t>120) return {why:'unseen'};
+    return {};
+  },
+  /* la tarea que estaba haciendo (o la que finge) dicha como la diria una persona */
+  taskWord(b, fake){
+    const m=this.mem(b), M=Game.M;
+    let type=m.lastTask && performance.now()/1000-m.lastTask.t<60 ? m.lastTask.type : null;
+    if(fake || !type){ const list=gameState.tasks[b.id]||[]; const t=pick(list.length?list:[{}]); const sp=t.spots && M.taskSpots.find(s=>s.id===t.spots[t.step||0]); type=sp?sp.type:null; }
+    return (type && Habla.TAREA[type]) || null;
   },
   tickMeeting(now){
+    const M=this.meet;
+    /* casi sin tiempo y faltan votos: alguien que ya voto apura a los demas */
+    if(M && !M.hurried && gameState.meeting && gameState.meeting.phase==='vote' && gameState.meeting.endsAt-now<14){
+      const al=alivePlayers(), left=al.filter(q=>gameState.votes[q.id]===undefined);
+      const who=al.find(q=>q.bot && gameState.votes[q.id]!==undefined && Math.random()<0.5);
+      if(left.length && who){ M.hurried=true; this.say(who,'hurry',null,null,now+rnd(0.3,1.5)); }
+    }
+    for(const g of allPlayers()){
+      if(!g.bot || g.alive || !g._gmAt || now<g._gmAt) continue;
+      g._gmAt=0;
+      const k=g._killer && gameState.players[g._killer];
+      if(k){ const text=Habla.texto(g, {k:'ghostmeet', p:k.id}); if(text) Host.onChat(g.id, text); }
+    }
     for(const b of alivePlayers()){
-      if(!b.bot || !b._say || !b._say.length) continue;
+      if(!b.bot) continue;
+      /* esta escribiendo: el mensaje sale cuando termina */
+      if(b._typing){
+        if(now<b._typing.at) continue;
+        const T=b._typing; b._typing=null;
+        if(T.qc) Host.onChat(b.id, '', {k:T.meta.k, p:T.meta.p, r:T.meta.r});
+        else Host.onChat(b.id, T.text, null, T.meta);
+        continue;
+      }
+      if(!b._say || !b._say.length) continue;
       b._say.sort((a,c)=>a.at-c.at);
       if(now<b._say[0].at || now<(b._sayNext||0)) continue;
       const s=b._say.shift();
@@ -10546,28 +11033,36 @@ const BotAI = {
       b._nSaid=(b._nSaid||0)+1;
       b._sayNext=now+rnd(1.3,2.6);                     /* nadie escribe dos frases en el mismo segundo */
       const mm=this.mem(b); (mm.sent=mm.sent||{})[s.k+'|'+(s.p||'')]=1;
-      Host.onChat(b.id, '', {k:s.k, p:s.p, r:s.r});
+      /* chat rapido o escrito a mano, segun como sea cada uno */
+      const st=b._st||(b._st=Habla.estilo());
+      const meta={k:s.k, p:s.p, r:s.r, why:s.why};
+      const useQC = !!QC.defs[s.k] && !s.why && Math.random()<st.qc && (!QC.needsR(s.k) || s.r) && (!QC.needsP(s.k) || s.p);
+      if(useQC) b._typing={at: now+Habla.tipeo(b,'',true), qc:true, meta};
+      else { const text=Habla.texto(b, s); if(!text) continue; b._typing={at: now+Habla.tipeo(b,text,false), text, meta}; }
     }
   },
   /* ---------- entender lo que se dice en la reunion ---------- */
   onChat(p, text, q){
     if(gameState.phase!=='meeting' || !p || !this.meet) return;
     if(p.ghost || !p.alive) return;                         /* a los fantasmas no los oyen los vivos */
-    if(!q) q=this.parseFree(p, text);
-    if(!q) return;
+    /* lo que escribe una persona puede traer varias ideas ("yo estaba en elec con rojo") */
+    const list = q ? [q] : Habla.leer(text, Habla.contexto(p.id));
     const now=performance.now()/1000;
-    this.meet.talk.push({from:p.id, k:q.k, p:q.p, r:q.r, t:now});
-    if(this.meet.talk.length>80) this.meet.talk.shift();
-    const ACC={sus:1, vote:1.2, nearbody:1.5, liar:1.4, sawvent:3, sawkill:5};
-    if(ACC[q.k] && q.p) this.meet.accused[q.p]=(this.meet.accused[q.p]||0)+ACC[q.k];
-    if((q.k==='safe'||q.k==='with'||q.k==='didtask') && q.p) this.meet.accused[q.p]=(this.meet.accused[q.p]||0)-0.8;
-    for(const b of alivePlayers()){ if(b.bot && b.id!==p.id) this.hear(b, p, q, now); }
+    for(const x of list){
+      if(!x || !x.k) continue;
+      this.meet.talk.push({from:p.id, k:x.k, p:x.p, r:x.r, t:now});
+      if(this.meet.talk.length>80) this.meet.talk.shift();
+      const ACC={sus:1, vote:1.2, ivoted:0.8, nearbody:1.5, liar:1.4, sawvent:3, sawkill:5};
+      if(ACC[x.k] && x.p) this.meet.accused[x.p]=(this.meet.accused[x.p]||0)+ACC[x.k];
+      if((x.k==='safe'||x.k==='with'||x.k==='didtask') && x.p) this.meet.accused[x.p]=(this.meet.accused[x.p]||0)-0.8;
+      for(const b of alivePlayers()){ if(b.bot && b.id!==p.id) this.hear(b, p, x, now); }
+    }
   },
   hear(b, S, q, now){
     const m=this.mem(b), crew=b.team!=='imp', P=b._pers||{talk:0.6,aggr:0.5,bluff:0.6};
     const tr=this.trustOf(b, S.id), id=q.p, about=id && gameState.players[id];
     const late=(a,c)=>now+rnd(a,c);
-    const ACC={sus:1, vote:1.2, nearbody:1.5, liar:1.4, sawvent:3, sawkill:5};
+    const ACC={sus:1, vote:1.2, ivoted:0.8, nearbody:1.5, liar:1.4, sawvent:3, sawkill:5};
     if(ACC[q.k]){
       if(!about) return;
       if(id===b.id){
@@ -10580,13 +11075,17 @@ const BotAI = {
           this.say(b,'notme',null,null,late(1,2.4));
           const comp=this.companion(b, this.meet.kt-25, this.meet.kt+3);
           if(comp && comp!==S.id) this.say(b,'with',comp,null,late(2.5,5));
-          else this.say(b,'iwas',null,this.myRoomAt(b,this.meet.kt),late(2.5,5));
-          if((e.framedMe || Math.random()<P.aggr*0.6)) this.say(b,'liar',S.id,null,late(3.5,7));
+          else this.say(b,'iwas',null,this.myRoomAt(b,this.meet.kt),late(2.5,5),{t:this.taskWord(b,false)});
+          /* sin pruebas de por medio: las pide; y si nadie puede respaldarlo, pide que le crean */
+          if(/^(sus|vote|ivoted)$/.test(q.k) && Math.random()<0.35) this.say(b,'proof',S.id,null,late(1.6,3.2));
+          if(!comp && Math.random()<0.25) this.say(b,'trust',null,null,late(4,7));
+          if((e.framedMe || Math.random()<P.aggr*0.6)) this.say(b,'liar',S.id,null,late(3.5,7), e.framedMe?{why:'framedMe'}:{});
         } else {
           this.say(b,'notme',null,null,late(1,2.6));
-          this.say(b,'iwas',null,this.alibiRoom(b),late(2.6,5.5));
+          this.say(b,'iwas',null,this.alibiRoom(b),late(2.6,5.5),{t:this.taskWord(b,true)});
+          if(Math.random()<0.4) this.say(b,'proof',S.id,null,late(1.6,3.4));
           if(S.team!=='imp'){
-            if(Math.random()<0.3+P.aggr*0.5) this.say(b, Math.random()<0.6?'liar':'sus', S.id, null, late(4,8));
+            if(Math.random()<0.3+P.aggr*0.5) this.say(b, Math.random()<0.6?'liar':'sus', S.id, null, late(4,8), Math.random()<0.5?{why:'framedMe'}:{});
           }
         }
         return;
@@ -10628,7 +11127,7 @@ const BotAI = {
           const e=this.ev(b,id);
           e.vouch += wt*tr;
           if(q.k==='with') this.ev(b,S.id).vouch += 0.4*tr;
-          if((e.kill || e.vent) && Math.random()<0.8){ this.say(b,'disagree',null,null,late(1.5,3.5)); this.say(b, e.kill?'sawkill':'sawvent', id, null, late(3,6)); this.ev(b,S.id).contra+=0.6; }
+          if((e.kill || e.vent) && Math.random()<0.8){ this.say(b,'disagree',null,null,late(1.5,3.5)); this.say(b, e.kill?'sawkill':'sawvent', id, e.kill?(e.killR||null):(e.ventR||null), late(3,6), e.kill?{v:e.killV}:{}); this.ev(b,S.id).contra+=0.6; }
         }
         return;
       }
@@ -10688,16 +11187,31 @@ const BotAI = {
       case 'who': case 'anyone': {
         if(!crew) return;
         for(const pid in m.ev){ const e=m.ev[pid]; const qq=gameState.players[pid]; if(!qq||!qq.alive) continue;
-          if(e.kill){ this.say(b,'sawkill',pid,null,late(1.2,3)); return; }
-          if(e.vent){ this.say(b,'sawvent',pid,null,late(1.5,3.5)); return; } }
+          if(e.kill){ this.say(b,'sawkill',pid,e.killR||null,late(1.2,3),{v:e.killV}); return; }
+          if(e.vent){ this.say(b,'sawvent',pid,e.ventR||null,late(1.5,3.5)); return; } }
         if(Math.random()<0.25) this.say(b,'dunno',null,null,late(1.5,4));
         return;
       }
       case 'wherebody': {
-        if(b.id===this.meet.caller && m.lastBody) this.say(b,'bodyat',null,m.lastBody.room,late(1.2,3));
+        if(b.id===this.meet.caller && m.lastBody) this.say(b,'bodyat',null,m.lastBody.room,late(1.2,3),{v:this.meet.victim});
         return;
       }
       case 'skip': { m.skipPull+=tr; return; }
+      case 'ivoted': { if(!q.p) m.skipPull+=0.5*tr; return; }
+      case 'hurry': { if(gameState.votes[b.id]===undefined && b._voteAt) b._voteAt=Math.min(b._voteAt, now+rnd(1,4)); return; }
+      case 'laugh': { const st=b._st||{}; if(Math.random()<(st.risa||0)*0.3) this.say(b,'laugh',null,null,late(1,2.5)); return; }
+      case 'proof': {
+        /* le piden pruebas: el que acuso cuenta por que */
+        const mine=this.meet.talk.filter(x=>x.from===b.id && x.p && /^(sus|vote|nearbody|liar|sawvent|sawkill)$/.test(x.k));
+        const lastA=mine[mine.length-1];
+        if(lastA && (!q.p || q.p===lastA.p)){
+          const e=this.ev(b,lastA.p);
+          if(e.kill) this.say(b,'sawkill',lastA.p,e.killR||null,late(1.5,3.5),{v:e.killV, why:'again'});
+          else if(e.vent) this.say(b,'sawvent',lastA.p,e.ventR||null,late(1.5,3.5),{why:'again'});
+          else { const rs=this.reasonFor(b,lastA.p); if(rs.why) this.say(b,'sus',lastA.p,rs.r||null,late(1.5,4),rs); else this.say(b,'dunno',null,null,late(1.5,3.5)); }
+        }
+        return;
+      }
       case 'agree': case 'disagree': {
         const last=this.lastAccusation(S.id);
         if(last && crew) this.ev(b,last.p).acc += (q.k==='agree'?0.6:-0.6)*tr;
@@ -10717,39 +11231,6 @@ const BotAI = {
     for(let i=tr.length-1;i>=0;i--){ const s=tr[i]; if(s.t<=t0 && t0-(s.t2||s.t)<70) return s; }
     return null;
   },
-  /* lo que escriben a mano: se buscan nombres, salas y palabras clave */
-  parseFree(p, text){
-    const low=' '+nameKey(text).replace(/[¿?¡!.,;:]/g,' ')+' ';
-    if(low.trim().length<2) return null;
-    let pid=null;
-    for(const q of Object.values(gameState.players)){
-      if(q.id===p.id || !q.name) continue;
-      const k=nameKey(q.name); if(k.length<2) continue;
-      if(low.indexOf(' '+k+' ')>=0){ pid=q.id; break; }
-    }
-    let room=null;
-    for(const r of QC.rooms()){ const k=nameKey(r); if(k.length>=3 && low.indexOf(k)>=0){ room=r; break; } }
-    const has=re=>re.test(low);
-    if(pid && has(/ donde (estaba|estabas|esta|andaba) /)) return {k:'where', p:pid};
-    if(pid && has(/ (mato|matar|mataste|asesin)/)) return {k:'sawkill', p:pid};
-    if(pid && has(/ (vent|ventil|tubo|ducto)/)) return {k:'sawvent', p:pid};
-    if(pid && has(/ (estaba|estuve|estuvo|andaba|ando) con /)) return {k:'with', p:pid};
-    if(pid && has(/ (inocente|limpio|safe|no fue|confio)/)) return {k:'safe', p:pid};
-    if(pid && has(/ (miente|mentira|mintiendo|mentiroso)/)) return {k:'liar', p:pid};
-    if(pid && room && has(/ vi a? /)) return {k:'sawat', p:pid, r:room};
-    if(pid && has(/ (cuerpo|cadaver)/)) return {k:'nearbody', p:pid};
-    if(pid && has(/ (vot|echen|echemos|expuls|fuera )/)) return {k:'vote', p:pid};
-    if(pid && has(/ (sus|sospech|impostor|imp |raro|fue el|fue ella|es el|es ella)/)) return {k:'sus', p:pid};
-    if(room && has(/ (cuerpo|cadaver|muerto) /)) return {k:'bodyat', r:room};
-    if(room && has(/ (yo )?(estaba|estuve|ando|andaba|toy|estoy) /)) return {k:'iwas', r:room};
-    if(has(/ (no fui yo|yo no fui|no soy|yo no)/)) return {k:'notme'};
-    if(has(/ (skip|saltar|saltemos|salten|nadie|no se sabe)/)) return {k:'skip'};
-    if(has(/ (quien fue|quien es|alguien vio|vieron algo|que paso)/)) return {k:'who'};
-    if(has(/ donde (estaba )?el cuerpo/)) return {k:'wherebody'};
-    if(has(/ (de acuerdo|cierto|verdad|exacto|confirmo)/)) return {k:'agree'};
-    if(has(/ (no es cierto|falso|no estoy de acuerdo|mentira)/)) return {k:'disagree'};
-    return null;
-  },
   /* ---------- votar ---------- */
   mustVote(){
     /* si nadie se va y matan a uno mas, ganan los impostores: no conviene saltar */
@@ -10757,6 +11238,12 @@ const BotAI = {
     return al-imps-1 <= imps;
   },
   decideVote(b){
+    const v=this.decideVote0(b), P=b._pers||{talk:0.6};
+    /* muchos cuentan a quien votaron */
+    if(Math.random()<0.25+P.talk*0.35) this.say(b,'ivoted', v==='skip'?null:v, null, performance.now()/1000+rnd(0.6,3));
+    return v;
+  },
+  decideVote0(b){
     const alive=alivePlayers().filter(q=>q.id!==b.id), m=this.mem(b), S=gameState.settings;
     if(!alive.length) return 'skip';
     const P=b._pers||{aggr:0.5,bluff:0.6};
@@ -10800,13 +11287,13 @@ const BotAI = {
       if(!b.bot || b.team==='imp') continue;
       for(const v in (votes||{})){
         if(v===b.id || votes[v]!==d.ejected) continue;
-        const e=this.ev(b, v); if(wasImp) e.goodVote++; else e.badVote++;
+        const e=this.ev(b, v); if(wasImp) e.goodVote++; else { e.badVote++; e.badVoteX=d.ejected; }
       }
       for(const x of T){
         if(x.from===b.id || x.p!==d.ejected) continue;
         const e=this.ev(b, x.from);
-        if(wasImp && (x.k==='safe'||x.k==='with'||x.k==='didtask')) e.defImp++;
-        if(!wasImp && /^(sus|vote|nearbody|liar|sawvent|sawkill)$/.test(x.k)) e.badVote+=0.5;
+        if(wasImp && (x.k==='safe'||x.k==='with'||x.k==='didtask')){ e.defImp++; e.defImpX=d.ejected; }
+        if(!wasImp && /^(sus|vote|nearbody|liar|sawvent|sawkill)$/.test(x.k)){ e.badVote+=0.5; e.badVoteX=d.ejected; }
       }
     }
   },
@@ -10842,10 +11329,11 @@ const BotAI = {
     let tx=g.x, tz=g.z;
     if(!ghost){
       const nowF=performance.now()/1000;
+      if(b._path && b._pathSig!==Nav.dynSig) b._path=null;      /* se cerro o se abrio una puerta: otra ruta */
       if(!b._path && !(b._direct>nowF)){
         if(this.pathBudget<=0){ b.anim='idle'; return 'wait'; }
         this.pathBudget--;
-        b._path=Nav.path(M, b.x, b.z, g.x, g.z); b._pi=0;
+        b._path=Nav.path(M, b.x, b.z, g.x, g.z); b._pi=0; b._pathSig=Nav.dynSig;
         if(!b._path){
           b._fails=(b._fails||0)+1;
           if(b._fails>2){ b._fails=0; b._goal=null; return 'fail'; }
@@ -10864,23 +11352,30 @@ const BotAI = {
     const moved=Math.hypot(nx-b.x,nz-b.z);
     b.x=b.tx=nx; b.z=b.tz=nz;
     const want=Math.atan2(dx,dz); b.yaw=b.tyaw=b.yaw+angDiff(b.yaw,want)*Math.min(1,dt*10);
-    b.anim='walk';
+    b.anim = speed > (b._walkSpd||speed)*1.15 ? 'run' : 'walk';
     if(moved<speed*dt*0.3){ b._stuck=(b._stuck||0)+dt;
       if(b._stuck>1.0){ b._stuck=0; b._repath=(b._repath||0)+1; b._path=null; if(b._repath>2){ b._goal=null; b._wait=rnd(0.3,1); return 'fail'; } }
     } else b._stuck=Math.max(0,(b._stuck||0)-dt*0.5);
     return 'moving';
   },
   /* ---------- en juego ---------- */
+  RUN:1.42,                                       /* correr: lo mismo que una persona con la tecla de correr */
   tick(dt){
     const S=gameState.settings, now=performance.now()/1000;
     this.pathBudget=2;
-    const base=3.0*S.speed*S.speedMult;
+    const base=4.1*S.speed*S.speedMult;            /* camina a la velocidad de una persona */
+    Nav.syncDoors(Game.M);                          /* puertas que se cerraron o se abrieron */
     for(const b of allPlayers()){
       if(!b.bot) continue;
       if(!b._mem) this.mem(b);
-      const speed=base*(b._spd||1);
+      /* hay quien camina y quien va corriendo a todos lados */
+      if(!b._runPick || now>b._runPick){ b._runPick=now+rnd(6,15); b._runs=Math.random()<((b._pers&&b._pers.run)||0); }
+      const walk=base*(b._spd||1); b._walkSpd=walk;
+      const speed=b._runs ? walk*this.RUN : walk;
       if(b.inVent){ this.tickVent(b, now); continue; }
-      if(!b.alive){ this.tickGhost(b, dt, base*1.2); continue; }
+      if(!b.alive){ this.tickGhost(b, dt, base*1.2, now); continue; }
+      /* ocupado: metido en una tarea, reparando o mirando camaras (no ve lo que pasa alrededor) */
+      b._busy = !!((b._doing && b._wait>0) || (b._work && now-b._work.seen<0.4) || b._onCams);
       /* percepcion (cada ~0.4 s) */
       if(now>(b._look||0)){
         b._look=now+rnd(0.3,0.5);
@@ -10888,7 +11383,13 @@ const BotAI = {
       }
       /* ante un sabotaje critico, el tripulante deja la tarea que estaba haciendo */
       if(b._wait>0 && b._doing && b.team!=='imp' && gameState.sabotage && /^(critical|o2|reactor)$/.test(gameState.sabotage.type)){ b._wait=0; b._doing=null; }
-      if(b._wait>0){ b._wait-=dt; b.anim = b._doing ? 'interact' : 'idle'; if(b._wait<=0) this.finishWait(b); continue; }
+      if(b._wait>0){
+        b._wait-=dt; b.anim = (b._doing || b._faking) ? 'interact' : 'idle';
+        if(!b._doing && !b._faking) this.gaze(b, dt, now);       /* parado: mira alrededor */
+        if(b._wait<=0){ b._faking=false; if(b._emoting){ b._emoting=false; Game.hostEmote(b, null); } this.finishWait(b); }
+        continue;
+      }
+      this.maybeEmote(b, now);
       /* de vez en cuando se queda quieto un momento (mira el mapa, duda) como una persona */
       if(!b._pauseAt) b._pauseAt=now+rnd(12,35);
       if(now>b._pauseAt){
@@ -10901,6 +11402,40 @@ const BotAI = {
       if(b.team==='imp') this.tickImpostor(b, dt, speed, now);
       else this.tickCrew(b, dt, speed, now);
     }
+  },
+  /* parado, mira alrededor: a quien pasa cerca o a cualquier lado (como alguien que gira la camara) */
+  gaze(b, dt, now){
+    if(now>(b._gazeAt||0)){
+      b._gazeAt=now+rnd(0.8,2.6);
+      let tgt=null, bd=10;
+      for(const q of alivePlayers()){ if(q.id===b.id || q.inVent) continue; const d=Vector3.dist2D(b.x,b.z,q.x,q.z); if(d<bd && Math.random()<0.7){ bd=d; tgt=q; } }
+      b._gaze = tgt ? Math.atan2(tgt.x-b.x, tgt.z-b.z) : (b.yaw||0)+rnd(-2.2,2.2);
+    }
+    if(b._gaze!==null && b._gaze!==undefined){ b.yaw=b.tyaw=b.yaw+angDiff(b.yaw,b._gaze)*Math.min(1,dt*4); }
+  },
+  /* de vez en cuando saluda o baila cuando hay alguien cerca (solo en momentos tranquilos) */
+  maybeEmote(b, now){
+    if(now<(b._emoteAt||0) || gameState.sabotage || gameState.lightsOut || b._report || b._witness || b._flee>now) return;
+    b._emoteAt=now+rnd(50,140);
+    const P=b._pers||{fun:0.3};
+    if(Math.random()>P.fun*0.35) return;
+    const near=alivePlayers().some(q=>q.id!==b.id && !q.inVent && Vector3.dist2D(b.x,b.z,q.x,q.z)<7);
+    if(!near) return;
+    const id=pick(['saludo','saludo','saludo','flair','baile']);
+    if(typeof Emotes!=='undefined' && !Emotes.get(id)) return;
+    Game.hostEmote(b, id);
+    b._emoting=true; b._wait=rnd(3.2,4.6); b._goal=b._goal||null; b.anim='idle';
+  },
+  /* cuanto tarda en una tarea segun cual sea (siempre entre 5 y 10 s) */
+  TASK_T: {wires:[5,6.5], switches:[5,6.5], divertpower:[5,6], acceptpower:[5,5.5], steering:[5.5,7], chartcourse:[5.5,7],
+    recordtemp:[5,6], alignengine:[5,6.5], align:[5,6.5], garbagepull:[5.5,7], chutedump:[5.5,7], keypad:[6,7.5], manifolds:[6,7.5],
+    swipecard:[5,10], calibrate:[6.5,8.5], fuelfill:[7,9], fuelpour:[7,9], fillcan:[7,9], asteroids:[7.5,9.5], sort:[6,8], clean:[6,8],
+    lockers:[6,8], computer:[6,8], machine:[6,8], power:[5.5,7], insertkeys:[6,7.5], sequence:[7,9], startreactor:[8.5,10],
+    uploaddata:[8.5,10], transfer:[8.5,10], medscan:[9,10], inspectsample:[9,10]},
+  taskTime(b, type){ const r=this.TASK_T[type]||[5,10], P=b._pers||{}; return clamp(rnd(r[0],r[1])*(P.hand||1), 5, 10); },
+  spotType(g){
+    const t=g && g.data; if(!t || !t.spots) return null;
+    const sp=Game.M.taskSpots.find(s=>s.id===t.spots[t.step||0]); return sp ? sp.type : null;
   },
   /* el bot trabaja 5-10 s en un punto de reparacion antes de arreglarlo; si se va, empieza de nuevo.
      keep=true: una vez terminado sigue devolviendo true mientras siga ahi (reactor) */
@@ -10916,7 +11451,9 @@ const BotAI = {
   finishWait(b){
     const g=b._doing; b._doing=null;
     if(g && g.kind==='task' && g.data && b.alive!==undefined){
-      const t=g.data; Game.hostTask(b, t.tid, t.step);
+      const t=g.data, sp=Game.M.taskSpots.find(s=>s.id===t.spots[t.step]);
+      if(sp) this.mem(b).lastTask={type:sp.type, t:performance.now()/1000, room:this.room(sp.x,sp.z)};
+      Game.hostTask(b, t.tid, t.step);
     }
   },
   /* la tarea que va a hacer: casi siempre la mas cercana, pero no siempre (como una persona) */
@@ -10943,7 +11480,7 @@ const BotAI = {
       if(!body){ b._report=null; }
       else {
         if(!b._goal || b._goal.kind!=='body') this.setGoal(b, body.x, body.z, 'body');
-        const r=this.follow(b, dt, speed*1.25, false);
+        const r=this.follow(b, dt, b._walkSpd*this.RUN, false);
         if((r==='arrived' || Vector3.dist2D(b.x,b.z,body.x,body.z)<3) && now>=b._report.at){ b.anim='idle'; Game.hostReport(b, body.id); b._report=null; b._goal=null; }
         else if(r==='fail'){ b._report=null; }
         return;
@@ -10953,7 +11490,7 @@ const BotAI = {
     if(b._avoid && now<b._avoid.until){
       const ax=b.x-(b._avoid.x-b.x), az=b.z-(b._avoid.z-b.z);
       if(!b._goal || b._goal.kind!=='avoid') this.setGoal(b, ax, az, 'avoid');
-      if(this.follow(b, dt, speed*1.1, false)!=='moving'){ b._goal=null; b._avoid=null; }
+      if(this.follow(b, dt, b._walkSpd*this.RUN, false)!=='moving'){ b._goal=null; b._avoid=null; }
       return;
     }
     /* 2) vio algo grave (un asesinato, una ventilacion) o esta casi seguro de quien es: boton de emergencia */
@@ -10965,7 +11502,7 @@ const BotAI = {
     }
     if(b._witness && now<b._witness.until && b.emergencies>0 && !(gameState.sabotage && gameState.sabotage.type!=='lights' && gameState.sabotage.type!=='doors')){
       if(!b._goal || b._goal.kind!=='emergency') this.goUse(b, 'emergency', null, 'em', M.emergency.x, M.emergency.z, 2.7);
-      const r=this.follow(b, dt, speed*1.2, false);
+      const r=this.follow(b, dt, b._walkSpd*this.RUN, false);
       if((r==='arrived' && Vector3.dist2D(b.x,b.z,M.emergency.x,M.emergency.z)<3.15) || Vector3.dist2D(b.x,b.z,M.emergency.x,M.emergency.z)<2.4){
         b._calledOn={id:b._witness.killer, why:b._witness.why||'sus'};
         b._witness=null; b._goal=null; Game.hostEmergency(b);
@@ -10986,7 +11523,7 @@ const BotAI = {
         let best=pts.find(q=>q.id===plan[b.id]), bd=best ? Vector3.dist2D(b.x,b.z,best.x,best.z) : 1e9;
         if(!best){ for(const q of pts){ const d=Vector3.dist2D(b.x,b.z,q.x,q.z); if(d<bd){ bd=d; best=q; } } }
         if(!b._goal || b._goal.kind!=='repair' || b._goal.data!==best.id) this.goUse(b, 'repair', best.id, 'rp'+best.id, best.x, best.z, 2.7);
-        const r=this.follow(b, dt, speed*1.55, false);                 /* corre, como una persona ante una alarma */
+        const r=this.follow(b, dt, b._walkSpd*this.RUN, false);          /* corre, como una persona ante una alarma */
         if((r==='arrived' && bd<3.15) || bd<2.6){ b._goal=null; if(this.workAt(b,'rep'+best.id,now)) Game.hostRepair(b, best.id); }
         return;
       }
@@ -11005,7 +11542,7 @@ const BotAI = {
         const d=Vector3.dist2D(b.x,b.z,mine.x,mine.z), us=this.useSpot(M,'ra'+mine.id,mine.x,mine.z,2.7);
         if(d>2.2 && !(d<3.15 && Vector3.dist2D(b.x,b.z,us.x,us.z)<0.6)){
           if(!b._goal || b._goal.kind!=='reactor') this.goUse(b, 'reactor', mine.id, 'ra'+mine.id, mine.x, mine.z, 2.7);
-          this.follow(b, dt, speed*1.55, false);
+          this.follow(b, dt, b._walkSpd*this.RUN, false);
           return;
         }
         b._goal=null; b.anim='interact';
@@ -11021,7 +11558,7 @@ const BotAI = {
         .sort((q,w)=>Vector3.dist2D(q.x,q.z,M.commsPos.x,M.commsPos.z)-Vector3.dist2D(w.x,w.z,M.commsPos.x,M.commsPos.z));
       if(crew.length && crew[0].id===b.id){
         if(!b._goal || b._goal.kind!=='comms') this.goUse(b, 'comms', null, 'cm', M.commsPos.x, M.commsPos.z, 2.9);
-        const r=this.follow(b, dt, speed*1.2, false), dc=Vector3.dist2D(b.x,b.z,M.commsPos.x,M.commsPos.z);
+        const r=this.follow(b, dt, speed, false), dc=Vector3.dist2D(b.x,b.z,M.commsPos.x,M.commsPos.z);
         if((r==='arrived' && dc<3.4) || dc<3){ b._goal=null; if(this.workAt(b,'comms',now)) Game.hostFixComms(b); }
         return;
       }
@@ -11042,6 +11579,32 @@ const BotAI = {
       return;
     }
     b._fixer=false;
+    /* apagon: hay quien se queda quieto o se pega a otro hasta que vuelva la luz */
+    if(gameState.lightsOut){
+      if(b._dark===undefined){ const P=b._pers||{social:0.5}; b._dark = Math.random()<0.25+0.45*P.social ? 'stay' : 'go'; }
+      if(b._dark==='stay'){
+        let near=null, bd=8;
+        for(const q of alivePlayers()){ if(q.id===b.id || q.inVent) continue; const d=Vector3.dist2D(b.x,b.z,q.x,q.z); if(d<bd && this.sees(b,q.x,q.z,8,-1)){ bd=d; near=q; } }
+        if(near && bd>2.5){ if(!b._goal || b._goal.kind!=='group' || now>(b._goal.until||0)){ this.setGoal(b, near.x, near.z, 'group', near.id); b._goal.until=now+1; } this.follow(b, dt, b._walkSpd, false); }
+        else { b._goal=null; b._wait=rnd(1.2,2.5); b.anim='idle'; }
+        return;
+      }
+    } else b._dark=undefined;
+    /* 3a) en el monitor de seguridad: va pasando de camara en camara y despues se va */
+    if(b._onCams){
+      const cs=CAM_STATION[M.id];
+      if(sab || gameState.lightsOut || now>b._onCams.until || !cs || Vector3.dist2D(b.x,b.z,cs.x,cs.z)>3.2){ b._onCams=null; b._camAt=now+rnd(90,220); }
+      else {
+        if(now>b._onCams.next){ b._onCams.idx=(b._onCams.idx+1)%M.cams.length; b._onCams.next=now+rnd(3,5.5); }
+        b.anim='interact'; b._goal=null;
+        return;
+      }
+    }
+    if(!b._goal && !sab && !gameState.lightsOut && M.cams && M.cams.length && CAM_STATION[M.id] && (b._camAt||0)<now){
+      b._camAt=now+rnd(40,100);
+      const P=b._pers||{};
+      if(Math.random()<(P.cams||0)){ const cs=CAM_STATION[M.id]; this.goUse(b, 'cams', null, 'camst', cs.x, cs.z, 2.4); }
+    }
     /* 3b) a veces acompana un rato a alguien de confianza (como hacen las personas para no quedar solas) */
     if(b._buddy){
       const q=gameState.players[b._buddy.id];
@@ -11096,7 +11659,11 @@ const BotAI = {
     if(r==='fail' && goalBefore && goalBefore.kind==='task' && goalBefore.data){ b._bad=b._bad||{}; b._bad[goalBefore.data.tid]=now+25; }
     if(r==='arrived'){
       const g=b._goal; b._goal=null;
-      if(g.kind==='task'){ b._doing=g; b._wait=rnd(5,10); b.anim='interact'; }
+      if(g.kind==='task'){ b._doing=g; b._wait=this.taskTime(b, this.spotType(g)); b.anim='interact'; }
+      else if(g.kind==='cams'){
+        const cs=CAM_STATION[M.id];
+        if(cs && Vector3.dist2D(b.x,b.z,cs.x,cs.z)<2.8){ b._onCams={until:now+rnd(10,26), idx:Math.floor(Math.random()*M.cams.length), next:now+rnd(3,5)}; b.anim='interact'; }
+      }
       else { b._wait=rnd(1.5,4); b.anim='idle'; }
     }
   },
@@ -11116,7 +11683,7 @@ const BotAI = {
     return who;
   },
   /* sabotaje con intencion: luces para separar, criticos si la tripulacion va ganando */
-  maybeSabotage(b, now){
+  maybeSabotage(b, now, victim){
     const S=gameState.settings;
     if(!S.sabotagesOn || Game.sabCooldown>0 || (b._sabAt||0)>now || now<(this.sabNext||0)) return false;
     b._sabAt=now+rnd(6,12);
@@ -11136,8 +11703,11 @@ const BotAI = {
     /* puertas: encerrar a la victima que persigue */
     const g=b._goal;
     if(g && (g.kind==='kill' || g.kind==='stalk') && Math.random()<0.4){
-      const groups=[...new Set((Game.M.doors||[]).map(d=>d.group))];
-      if(groups.length){ Game.hostSabotage(b,'doors',pick(groups)); this.sabNext=now+rnd(8,16); return true; }
+      /* las puertas mas cercanas a la victima (para dejarla encerrada) */
+      const t=victim || (g.data && gameState.players[g.data]);
+      let best=null, bd=18;
+      for(const d of (Game.M.doors||[])){ if(!t) break; const dd=Vector3.dist2D((d.x1+d.x2)/2,(d.z1+d.z2)/2,t.x,t.z); if(dd<bd){ bd=dd; best=d.group; } }
+      if(best){ Game.hostSabotage(b,'doors',best); this.sabNext=now+rnd(8,16); return true; }
     }
     return false;
   },
@@ -11150,7 +11720,10 @@ const BotAI = {
       if(d>maxD || !losClear(M,b.x,b.z,t.x,t.z)) continue;
       if(needNoWitness && this.watched(b, t.x, t.z, t.id)) continue;
       const nv=this.nearestVent(M, t.x, t.z, 12);
-      const score = -d*0.35 - this.lonelyScore(b,t)*7 + (nv ? 3.5-nv.d*0.12 : 0);
+      /* mejor si esta metido en una tarea o de espaldas (como haria una persona) */
+      const busy = t.bot ? !!t._busy : t.anim==='interact';
+      const fx=Math.sin(t.yaw||0), fz=Math.cos(t.yaw||0), back = d>0.5 && ((b.x-t.x)*fx+(b.z-t.z)*fz)/d < -0.2;
+      const score = -d*0.35 - this.lonelyScore(b,t)*7 + (nv ? 3.5-nv.d*0.12 : 0) + (busy?2.5:0) + (back?1:0);
       if(score>bestScore){ bestScore=score; target=t; }
     }
     return target;
@@ -11174,7 +11747,7 @@ const BotAI = {
           const r=pick(far.length?far:M.taskSpots); if(r) this.setGoal(b, r.x, r.z, 'flee');
         }
       }
-      const g=b._goal, res=this.follow(b, dt, speed*1.15, false);
+      const g=b._goal, res=this.follow(b, dt, b._walkSpd*this.RUN, false);
       if(g && g.kind==='ventin' && (res==='arrived' || Vector3.dist2D(b.x,b.z,g.x,g.z)<2.0)){
         b._goal=null; b._ventHops=0; b._ventAt=0; Game.hostVent(b, g.data);
         if(b.inVent){ b._flee=0; return; }
@@ -11202,11 +11775,31 @@ const BotAI = {
           return;
         }
         if(!b._goal || b._goal.kind!=='kill' || b._goal.data!==target.id || now>(b._goal.until||0)){ this.setGoal(b, target.x, target.z, 'kill', target.id); b._goal.until=now+0.8; }
-        this.maybeSabotage(b, now);
-        this.follow(b, dt, speed*1.08, false);
+        this.maybeSabotage(b, now, target);
+        this.follow(b, dt, b._walkSpd*(td>6?this.RUN:1), false);          /* se acerca caminando, como si nada */
         return;
       }
     }
+    /* sin poder matar todavia: a veces se pega a un tripulante para tener coartada ("estuve con X") */
+    if(!canKill && b.killAt-now>12 && !b._report){
+      if(!b._alibiBud && (b._alibiAt||0)<now){
+        b._alibiAt=now+rnd(25,50);
+        const P=b._pers||{bluff:0.5};
+        if(Math.random()<P.bluff*0.35){
+          const c=alivePlayers().filter(q=>q.team!=='imp' && !q.inVent && Vector3.dist2D(b.x,b.z,q.x,q.z)<12 && losClear(M,b.x,b.z,q.x,q.z));
+          if(c.length) b._alibiBud={id:pick(c).id, until:now+rnd(10,22)};
+        }
+      }
+      const q=b._alibiBud && gameState.players[b._alibiBud.id];
+      if(q && q.alive && !q.inVent && now<b._alibiBud.until){
+        const d=Vector3.dist2D(b.x,b.z,q.x,q.z);
+        if(d>2.8){
+          if(!b._goal || b._goal.kind!=='alibi' || now>(b._goal.until||0)){ this.setGoal(b, q.x, q.z, 'alibi', q.id); b._goal.until=now+1.0; }
+          this.follow(b, dt, speed, false);
+        } else { b._goal=null; b.anim = q.anim==='interact' ? 'interact' : 'idle'; this.gaze(b, dt, now); }
+        return;
+      } else b._alibiBud=null;
+    } else b._alibiBud=null;
     /* casi listo para matar: se pega a alguien que anda solo (sin acercarse demasiado) */
     const left=b.killAt-now;
     if(!canKill && left>0 && left<6 && !b._report){
@@ -11236,15 +11829,16 @@ const BotAI = {
         const fake=(gameState.tasks[b.id]||[]).map(t=>M.taskSpots.find(s=>s.id===t.spots[t.step||0])).filter(Boolean)
           .filter(sp=>Vector3.dist2D(sp.x,sp.z,b.x,b.z)>6);
         const spots=M.taskSpots.filter(sp=>Vector3.dist2D(sp.x,sp.z,b.x,b.z)>8);
-        const r=(fake.length && Math.random()<0.65) ? pick(fake) : pick(spots.length?spots:M.taskSpots);
-        if(r) this.setGoal(b, r.x+rnd(-1,1), r.z+rnd(-1,1), 'wander');
+        const isFake=fake.length && Math.random()<0.65;
+        const r=isFake ? pick(fake) : pick(spots.length?spots:M.taskSpots);
+        if(r){ this.setGoal(b, r.x+rnd(-1,1), r.z+rnd(-1,1), 'wander'); b._goal.fakeType=isFake ? r.type : null; }
       }
     }
     const g2=b._goal, r=this.follow(b, dt, speed, false);
     if(g2 && g2.kind==='ventin' && (r==='arrived' || Vector3.dist2D(b.x,b.z,g2.x,g2.z)<2.0)){
       b._goal=null; b._ventHops=0; b._ventAt=0; Game.hostVent(b, g2.data); return;
     }
-    if(r==='arrived'){ b._goal=null; b._doing=null; b._wait=rnd(5,10); b.anim='interact'; }
+    if(r==='arrived'){ const ft=g2 && g2.fakeType; b._goal=null; b._doing=null; b._wait = ft ? this.taskTime(b, ft) : rnd(2,6); b._faking=!!ft; b.anim = ft ? 'interact' : 'idle'; }
   },
   /* dentro de una ventilacion: salta de una a otra y sale cuando no hay nadie cerca */
   tickVent(b, now){
@@ -11304,17 +11898,31 @@ const BotAI = {
     }
     return false;
   },
-  tickGhost(b, dt, speed){
+  tickGhost(b, dt, speed, now){
     const M=Game.M;
+    /* recien muerto: se lo cuenta a los otros fantasmas (solo ellos lo leen) */
+    if(b._ghostSay && now>b._ghostSay){
+      b._ghostSay=0;
+      const k=b._killer && gameState.players[b._killer];
+      const text=Habla.texto(b, k ? {k:'ghost', p:k.id} : {k:'ghostcrew'});
+      if(text && gameState.phase==='playing') Host.onChat(b.id, text);
+    }
     if(b._wait>0){ b._wait-=dt; if(b._wait<=0) this.finishWait(b); return; }
+    if(b._goal && b._goal.kind==='watch' && now>(b._goal.until||0)) b._goal=null;
     if(!b._goal){
       const list=gameState.tasks[b.id], t=list && list.find(x=>!x.done);
       const sp=t && M.taskSpots.find(s=>s.id===t.spots[t.step]);
       if(sp && b.team==='crew') this.setGoal(b, sp.x, sp.z, 'task', t);
-      else { const r=pick(M.taskSpots); if(r) this.setGoal(b, r.x, r.z, 'wander'); else return; }
+      else {
+        /* sin tareas: sigue a alguien para ver que pasa (muchas veces al que lo mato) */
+        const kq=b._killer && gameState.players[b._killer];
+        const tgt=(kq && kq.alive && Math.random()<0.6) ? kq : pick(alivePlayers());
+        if(tgt){ this.setGoal(b, tgt.x+rnd(-2.5,2.5), tgt.z+rnd(-2.5,2.5), 'watch', tgt.id); b._goal.until=now+rnd(1.5,3); }
+        else { const r=pick(M.taskSpots); if(r) this.setGoal(b, r.x, r.z, 'wander'); else return; }
+      }
     }
     const r=this.follow(b, dt, speed, true);
-    if(r==='arrived'){ const g=b._goal; b._goal=null; if(g.kind==='task'){ b._doing=g; b._wait=rnd(5,10); } else b._wait=rnd(1,3); }
+    if(r==='arrived'){ const g=b._goal; b._goal=null; if(g.kind==='task'){ b._doing=g; b._wait=this.taskTime(b, this.spotType(g)); } else b._wait=rnd(0.4,1.8); }
   }
 };
 
