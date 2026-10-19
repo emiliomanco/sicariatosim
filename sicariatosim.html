@@ -9139,12 +9139,19 @@ const Game = {
     if(gameState.phase!=='playing') return;
     if(!p.alive || p.team!=='imp' || p.inVent) return;
     const now=performance.now()/1000;
-    if(now < p.killAt) return;
+    /* el enfriamiento lo manda el host; si el jugador ve otro numero, se lo corrige */
+    if(now < p.killAt){ if(!p.bot) this.tell(p,{t:'ev',e:'killcd',cd:+(p.killAt-now).toFixed(2),msg:'Enfriamiento: '+Math.ceil(p.killAt-now)+' s'}); return; }
     const t=gameState.players[targetId];
     if(!t || !t.alive || t.team==='imp' || t.inVent || !t.connected) return;
-    const dist=Vector3.dist2D(p.x,p.z,t.x,t.z);
-    if(dist > KILL_DIST[gameState.settings.killDist]+0.6) return;
-    if(!losClear(this.M,p.x,p.z,t.x,t.z)) return;
+    /* cada uno ve al otro con un poco de retraso: se mide con la posicion mas reciente y la interpolada,
+       con margen extra cuando juega una persona */
+    const px=[p.x, p.tx!==undefined?p.tx:p.x], pz=[p.z, p.tz!==undefined?p.tz:p.z];
+    const tx=[t.x, t.tx!==undefined?t.tx:t.x], tz=[t.z, t.tz!==undefined?t.tz:t.z];
+    let dist=1e9, bi=0, bj=0;
+    for(let i=0;i<2;i++) for(let j=0;j<2;j++){ const d=Vector3.dist2D(px[i],pz[i],tx[j],tz[j]); if(d<dist){ dist=d; bi=i; bj=j; } }
+    const slack = (p.bot && t.bot) ? 0.6 : 1.3;
+    if(dist > KILL_DIST[gameState.settings.killDist]+slack){ if(!p.bot) this.tell(p,{t:'ev',e:'killcd',cd:0,msg:'Acércate más'}); return; }
+    if(!losClear(this.M,px[bi],pz[bi],tx[bj],tz[bj]) && !losClear(this.M,p.x,p.z,t.x,t.z)) return;
     if(p.vanishUntil>now) return;                         /* el Fantasma no puede matar siendo invisible */
     if(t.shieldUntil>now){                                  /* escudo del Angel guardian: bloquea y se rompe */
       t.shieldUntil=0;
@@ -9536,7 +9543,7 @@ const Game = {
         const q=spawnSpot(this.M, i, back.length); setPos(p, q.x, q.z, q.yaw);
         if(p.team==='imp') p.killAt=performance.now()/1000+gameState.settings.killCooldown;
       });
-      const ev2={t:'ev',e:'resume'};
+      const ev2={t:'ev',e:'resume', kcd:gameState.settings.killCooldown};
       NetMgr.bcast(ev2); this.clientEvent(ev2);
     }, EJECT_MS);
   },
@@ -9653,8 +9660,10 @@ const Game = {
       if(q && d.who!==Net.myId) q.emote = d.id ? {id:d.id, t0:performance.now()/1000} : null;
     }
     else if(e==='voted'){ UI.onVoted(d); }
+    else if(e==='killcd'){ Local.killCD=Math.max(0, +d.cd||0); if(d.msg) toast(d.msg,'#ff8a96',1100); }
     else if(e==='eject'){ UI.showEject(d); }
     else if(e==='resume'){ gameState.phase='playing'; gameState.meeting=null; gameState.votes={};
+      { const mq=me(); if(mq && mq.team==='imp') Local.killCD = (typeof d.kcd==='number') ? d.kcd : gameState.settings.killCooldown; }
       UI.resume(); }
     else if(e==='sab'){
       const mp0=me();
@@ -12950,9 +12959,11 @@ function updateLocal(dt){
     p.x=lerp(p.x,p.tx,k); p.z=lerp(p.z,p.tz,k);
     p.yaw = p.yaw + angDiff(p.yaw,p.tyaw)*k;
   }
-  if(Local.killCD>0) Local.killCD=Math.max(0,Local.killCD-dt);
-  if(Local.emCD>0) Local.emCD=Math.max(0,Local.emCD-dt);
-  if(Local.sabCD>0) Local.sabCD=Math.max(0,Local.sabCD-dt);
+  /* los enfriamientos corren con el reloj real (con pocos FPS el paso del frame se recorta y el numero se atrasaba) */
+  const nowCd=performance.now()/1000, rdt=Math.min(1, Math.max(0, nowCd-(Local._cdT||nowCd))); Local._cdT=nowCd;
+  if(Local.killCD>0) Local.killCD=Math.max(0,Local.killCD-rdt);
+  if(Local.emCD>0) Local.emCD=Math.max(0,Local.emCD-rdt);
+  if(Local.sabCD>0) Local.sabCD=Math.max(0,Local.sabCD-rdt);
   guardCamera(dt);
   if(now-lastPosSend > 1/SEND_HZ){
     lastPosSend=now;
